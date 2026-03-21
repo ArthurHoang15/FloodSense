@@ -43,7 +43,7 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
     const enableRaw = req.body?.enable
     const enabled = typeof enableRaw === 'boolean' ? enableRaw : true
 
-    if (!IS_LIVE) {
+    if (!IS_LIVE || !supabase) {
       // Mock path — keep existing in-memory behaviour
       const simulated = setSimulated(store, enabled)
       res.status(200).json({ success: true, enabled, count: simulated.length, floods: simulated })
@@ -92,7 +92,7 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
   router.post('/reset-simulated', async (req: Request, res: Response) => {
     if (!checkSecret(req, res)) return
 
-    if (!IS_LIVE) {
+    if (!IS_LIVE || !supabase) {
       setSimulated(store, false)
       res.status(200).json({ success: true })
       return
@@ -111,6 +111,10 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
   // Called by n8n every 5 minutes: Exa.ai → GPT-4o/rule-based → Supabase upsert
   router.post('/run-pipeline', async (req: Request, res: Response) => {
     if (!checkSecret(req, res)) return
+    if (!supabase) {
+      res.status(503).json({ success: false, error: 'Supabase not configured' })
+      return
+    }
 
     const startedAt = new Date()
     let new_floods = 0
@@ -194,6 +198,10 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
   // Called by n8n after run-pipeline finds new floods
   router.post('/check-saved-routes', async (req: Request, res: Response) => {
     if (!checkSecret(req, res)) return
+    if (!supabase) {
+      res.status(503).json({ success: false, error: 'Supabase not configured' })
+      return
+    }
     const { flood_id } = req.body as { flood_id?: string }
     if (!flood_id) {
       res.status(400).json({ success: false, error: 'flood_id required' })

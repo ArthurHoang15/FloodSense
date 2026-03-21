@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import type { FloodEvent, FloodSource } from '../../shared/types.js'
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // service role — bypasses RLS, server-only
-)
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+    )
+  : null
 
 export default supabase
 

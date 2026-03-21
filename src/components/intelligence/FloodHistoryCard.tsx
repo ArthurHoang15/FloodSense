@@ -10,6 +10,7 @@ type HistoryBar = {
 
 type Props = {
   items: HistoryBar[]
+  summary: string
   className?: string
 }
 
@@ -19,7 +20,7 @@ function barToneClass(tone: HistoryBar['tone']) {
   return 'bg-surface-container-highest'
 }
 
-export default function FloodHistoryCard({ items, className }: Props) {
+export default function FloodHistoryCard({ items, summary, className }: Props) {
   return (
     <SurfaceCard className={cn('h-full p-8', className)}>
       <h3 className="font-headline text-2xl font-bold tracking-[-0.05em] text-on-surface">Flood History (7D)</h3>
@@ -35,7 +36,7 @@ export default function FloodHistoryCard({ items, className }: Props) {
 
       <div className="mt-4 flex items-center gap-2 border-t border-outline-variant/10 pt-4">
         <span className="h-2 w-2 rounded-full bg-primary" />
-        <span className="text-xs text-on-surface-variant">Peak intensity occurred mid-week, matching the current rainfall escalation window.</span>
+        <span className="text-xs text-on-surface-variant">{summary}</span>
       </div>
     </SurfaceCard>
   )

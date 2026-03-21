@@ -15,6 +15,10 @@ export default function createSavedRoutesRoutes(): express.Router {
       res.status(200).json({ success: true, routes: [] })
       return
     }
+    if (!supabase) {
+      res.status(200).json({ success: true, routes: [] })
+      return
+    }
     try {
       const { data, error } = await supabase
         .from('saved_routes')
@@ -35,6 +39,10 @@ export default function createSavedRoutesRoutes(): express.Router {
     const anonId = getAnonId(req)
     if (!anonId) {
       res.status(400).json({ success: false, error: 'x-anonymous-id header required' })
+      return
+    }
+    if (!supabase) {
+      res.status(503).json({ success: false, error: 'Saved routes storage not configured' })
       return
     }
     const b = req.body
@@ -76,6 +84,10 @@ export default function createSavedRoutesRoutes(): express.Router {
       res.status(400).json({ success: false, error: 'notify_enabled required' })
       return
     }
+    if (!supabase) {
+      res.status(503).json({ success: false, error: 'Saved routes storage not configured' })
+      return
+    }
     try {
       const { error } = await supabase
         .from('saved_routes')
@@ -94,6 +106,10 @@ export default function createSavedRoutesRoutes(): express.Router {
   router.delete('/:id', async (req: Request, res: Response) => {
     const anonId = getAnonId(req)
     const { id } = req.params
+    if (!supabase) {
+      res.status(503).json({ success: false, error: 'Saved routes storage not configured' })
+      return
+    }
     try {
       const { error } = await supabase
         .from('saved_routes')

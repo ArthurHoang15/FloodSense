@@ -30,29 +30,31 @@ export default function createVoiceRoutes(): express.Router {
       return
     }
 
-    try {
-      // Check cache: look for a matching alert_history row with audio_url
-      const { data: cached } = await supabase
-        .from('alert_history')
-        .select('audio_url')
-        .eq('message', text)
-        .not('audio_url', 'is', null)
-        .limit(1)
-        .single()
+    if (supabase) {
+      try {
+        // Check cache: look for a matching alert_history row with audio_url
+        const { data: cached } = await supabase
+          .from('alert_history')
+          .select('audio_url')
+          .eq('message', text)
+          .not('audio_url', 'is', null)
+          .limit(1)
+          .single()
 
-      if (cached?.audio_url) {
-        // Proxy the cached audio URL
-        const audioRes = await fetch(cached.audio_url as string)
-        if (audioRes.ok) {
-          res.setHeader('Content-Type', 'audio/mpeg')
-          res.setHeader('X-Cache', 'HIT')
-          const buffer = await audioRes.arrayBuffer()
-          res.send(Buffer.from(buffer))
-          return
+        if (cached?.audio_url) {
+          // Proxy the cached audio URL
+          const audioRes = await fetch(cached.audio_url as string)
+          if (audioRes.ok) {
+            res.setHeader('Content-Type', 'audio/mpeg')
+            res.setHeader('X-Cache', 'HIT')
+            const buffer = await audioRes.arrayBuffer()
+            res.send(Buffer.from(buffer))
+            return
+          }
         }
+      } catch {
+        // cache miss — continue to ElevenLabs
       }
-    } catch {
-      // cache miss — continue to ElevenLabs
     }
 
     try {
