@@ -1,14 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   line-height: 1.5;
   font-weight: 400;
+  color: #dfe2f1;
+  background-color: #0f131d;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  background-color: #0f131d;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(0, 229, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 85% 15%, rgba(254, 179, 0, 0.08), transparent 18%),
+    linear-gradient(180deg, rgba(10, 14, 24, 0.98) 0%, rgba(15, 19, 29, 1) 45%, rgba(10, 14, 24, 0.98) 100%);
+  color: #dfe2f1;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.mapboxgl-popup-content {
+  border: 1px solid rgba(59, 73, 76, 0.25);
+  border-radius: 1rem;
+  background: rgba(23, 27, 38, 0.92);
+  color: #dfe2f1;
+  box-shadow: 0 0 20px rgba(195, 245, 255, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: rgba(23, 27, 38, 0.92) !important;
+}
+
+.fs-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(132, 147, 150, 0.55) transparent;
+}
+
+.fs-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.fs-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fs-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(132, 147, 150, 0.45);
+  border-radius: 999px;
+}
+
+@layer base {
+  * {
+    @apply border-outline-variant/15;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    @apply font-body;
+  }
+}
+
+@layer components {
+  .fs-shell {
+    @apply min-h-screen bg-background text-on-background;
+  }
+
+  .fs-glass {
+    @apply border border-outline-variant/15 bg-surface-container-highest/65 backdrop-blur-panel shadow-ambient;
+  }
+
+  .fs-surface-low {
+    @apply rounded-3xl bg-surface-container-low/90 shadow-ambient;
+  }
+
+  .fs-surface-panel {
+    @apply rounded-3xl border border-outline-variant/15 bg-surface-container-low/90 shadow-ambient;
+  }
+
+  .fs-panel-inner {
+    @apply rounded-2xl bg-surface-container/90;
+  }
+
+  .fs-label {
+    @apply font-label text-label-sm uppercase tracking-[0.16em] text-on-surface-variant;
+  }
+
+  .fs-kicker {
+    @apply font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant;
+  }
+
+  .fs-input {
+    @apply w-full rounded-2xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container/20;
+  }
+
+  .fs-icon-button {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-outline-variant/15 bg-surface-container-high/80 text-on-surface-variant transition hover:border-primary-container/30 hover:bg-surface-container-highest hover:text-primary;
+  }
+
+  .fs-button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-flood-gradient px-4 py-3 text-sm font-semibold text-on-primary shadow-ambient transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .fs-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-outline-variant/15 bg-surface-container-highest/70 px-4 py-3 text-sm font-medium text-primary transition hover:bg-surface-container-highest disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .fs-stat-card {
+    @apply rounded-2xl border border-outline-variant/15 bg-surface-container-high/90 p-4;
+  }
 }

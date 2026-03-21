@@ -92,11 +92,11 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
             0,
             'rgba(0,0,255,0)',
             0.3,
-            'rgba(255,255,0,0.7)',
+            'rgba(0,229,255,0.35)',
             0.6,
-            'rgba(255,165,0,0.8)',
+            'rgba(254,179,0,0.75)',
             1,
-            'rgba(255,0,0,0.9)',
+            'rgba(255,180,171,0.88)',
           ],
           'heatmap-radius': 38,
           'heatmap-opacity': 0.85,
@@ -113,15 +113,15 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
             'match',
             ['get', 'severity'],
             'heavy',
-            '#ef4444',
+            '#ffb4ab',
             'moderate',
-            '#f97316',
+            '#feb300',
             'light',
-            '#eab308',
-            '#a1a1aa',
+            '#00e5ff',
+            '#849396',
           ],
           'circle-stroke-width': 1,
-          'circle-stroke-color': '#0a0a0a',
+          'circle-stroke-color': '#0a0e18',
           'circle-opacity': 0.95,
         },
       })
@@ -136,10 +136,10 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
         if (id) onSelectFloodRef.current?.(id)
 
         const html = `
-          <div style="font-family: ui-sans-serif, system-ui; font-size: 12px;">
-            <div style="font-weight: 600; margin-bottom: 2px;">${street}</div>
-            <div style="opacity: 0.85;">${district}</div>
-            <div style="margin-top: 6px;">Depth: ${depth ? `${depth}cm` : 'unknown'}</div>
+          <div style="font-family: Inter, ui-sans-serif, system-ui; font-size: 12px; color: #dfe2f1;">
+            <div style="font-family: 'Space Grotesk', ui-sans-serif, system-ui; font-size: 15px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 2px;">${street}</div>
+            <div style="opacity: 0.78;">${district}</div>
+            <div style="margin-top: 8px; color: #c3f5ff;">Depth: ${depth ? `${depth}cm` : 'unknown'}</div>
           </div>
         `
 
@@ -187,7 +187,7 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
         type: 'line',
         source: 'route-line',
         paint: {
-          'line-color': '#38bdf8',
+          'line-color': '#00e5ff',
           'line-width': 4,
           'line-opacity': 0.95,
         },
@@ -200,14 +200,14 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
 
   if (!token) {
     return (
-      <div className="h-full w-full rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-        <div className="text-sm text-zinc-200">Mapbox token missing.</div>
-        <div className="mt-2 text-xs text-zinc-400">
+      <div className="h-full w-full rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest p-6">
+        <div className="text-sm text-on-surface">Mapbox token missing.</div>
+        <div className="mt-2 text-xs text-on-surface-variant">
           Set <span className="font-mono">VITE_MAPBOX_TOKEN</span> in <span className="font-mono">.env</span> to enable the map.
         </div>
       </div>
     )
   }
 
-  return <div ref={containerRef} className="h-full w-full rounded-xl overflow-hidden border border-zinc-800" />
+  return <div ref={containerRef} className="h-full w-full overflow-hidden rounded-[2rem]" />
 }
