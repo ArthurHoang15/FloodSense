@@ -3,11 +3,15 @@ import type { FloodStore } from '../_lib/mockData.js'
 import { getFloods } from '../_lib/mockData.js'
 import type { LatLng, RouteCheckRequest, RouteCheckResponse } from '../../shared/types.js'
 import { bboxFromCoords, haversineMeters, interpolateLine } from '../_lib/geo.js'
+import { getDrivingRoute } from '../_lib/directions.js'
 import { geocode, mockGeocode } from '../_lib/geocode.js'
 import supabase, { toFloodEvent } from '../_lib/supabase.js'
 
-const IS_LIVE = process.env.DATA_MODE === 'live'
 const RADIUS_METERS = 200
+
+function isLiveMode() {
+  return process.env.DATA_MODE === 'live'
+}
 
 function asLatLng(input: unknown): LatLng | null {
   if (!input || typeof input !== 'object') return null
@@ -20,13 +24,13 @@ function asLatLng(input: unknown): LatLng | null {
 
 async function resolveLocation(input: RouteCheckRequest['origin']): Promise<LatLng | null> {
   if (typeof input === 'string') {
-    return IS_LIVE ? geocode(input) : mockGeocode(input)
+    return isLiveMode() ? geocode(input) : mockGeocode(input)
   }
   const ll = asLatLng(input)
   if (ll) return ll
   const addr = (input as { address?: unknown })?.address
   if (typeof addr === 'string') {
-    return IS_LIVE ? geocode(addr) : mockGeocode(addr)
+    return isLiveMode() ? geocode(addr) : mockGeocode(addr)
   }
   return null
 }
@@ -35,6 +39,14 @@ function pickSeverityWord(count: number): string {
   if (count >= 3) return 'high risk'
   if (count >= 1) return 'some risk'
   return 'low risk'
+}
+
+async function buildRouteCoords(origin: LatLng, destination: LatLng): Promise<LatLng[]> {
+  const mapboxRoute = await getDrivingRoute(origin, destination)
+  if (mapboxRoute && mapboxRoute.length > 1) {
+    return mapboxRoute
+  }
+  return interpolateLine(origin, destination, 40)
 }
 
 export default function createRouteCheckRoutes(store: FloodStore): express.Router {
@@ -50,12 +62,12 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
       return
     }
 
-    const coords = interpolateLine(origin, destination, 40)
+    const coords = await buildRouteCoords(origin, destination)
     const bounding_box = bboxFromCoords(coords)
 
     try {
       let floods
-      if (IS_LIVE && supabase) {
+      if (isLiveMode() && supabase) {
         // Use Supabase stored function for bbox query
         const { data, error } = await supabase.rpc('get_floods_in_bbox', {
           p_north: bounding_box.north,

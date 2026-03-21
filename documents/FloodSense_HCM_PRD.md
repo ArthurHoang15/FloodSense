@@ -28,7 +28,7 @@
 
 ## 1. Tổng quan sản phẩm
 
-**FloodSense HCM** là nền tảng bản đồ ngập thông minh realtime dành riêng cho HCMC, sử dụng AI để thu thập, xác minh và cảnh báo thông tin ngập đường từ mạng xã hội, báo điện tử và **tín hiệu VETC mô phỏng (mock) để minh hoạ** (demo không tích hợp dữ liệu Tasco/VETC thật).
+**FloodSense HCM** là nền tảng bản đồ ngập thông minh realtime dành riêng cho HCMC, sử dụng AI để thu thập, xác minh và cảnh báo thông tin ngập đường từ mạng xã hội, báo điện tử, weather APIs realtime và các tín hiệu mobility/camera/crowdsource. Phiên bản hiện tại vẫn giữ **tín hiệu VETC mô phỏng (mock)** để minh hoạ do chưa có quyền truy cập dữ liệu Tasco/VETC thật.
 
 ### Tagline
 > *"Google Maps dẫn bạn vào đường ngập. FloodSense thì không."*
@@ -77,6 +77,7 @@ Báo điện tử      → Có tin ngập nhưng không structured, không map
 
 - [ ] Deploy được app hoạt động tại URL public
 - [ ] Bản đồ ngập HCMC cập nhật từ Exa.ai pipeline thật
+- [ ] Weather signal realtime: current + hourly + government alert feed hoạt động
 - [ ] ElevenLabs voice alert tiếng Việt hoạt động
 - [ ] n8n automation gửi push notification khi tuyến quen bị ngập
 - [ ] Demo "Simulate Rain" button hoạt động mượt cho pitching
@@ -308,6 +309,19 @@ const VOICE_CONFIG = {
 - Submitted report: confidence = "user-reported", cần 2+ confirms để lên High
 - Gamification nhẹ: badge "Người báo ngập tích cực" sau 10 reports
 
+**MVP implementation plan:**
+- Phase 1: `POST /api/report-flood` nhận `locationText | lat/lng`, `severity`, `note`
+- Phase 1: nếu chưa có Supabase local, route vẫn hoạt động bằng in-memory fallback để demo không bị block
+- Phase 1: báo cáo mới phải được phản ánh vào intelligence surfaces và local flood feed ngay sau khi submit
+- Phase 2: thêm upload ảnh + moderation + duplicate detection tốt hơn
+- Phase 3: merge report với camera/radar/weather signals để tăng confidence tự động
+
+**Acceptance criteria:**
+- [ ] User gửi được báo cáo ngập từ UI intelligence/map
+- [ ] API chấp nhận cả `locationText` lẫn `lat/lng`
+- [ ] Local/dev mode không phụ thuộc Supabase vẫn submit được
+- [ ] Báo cáo lặp gần cùng vị trí được tăng `confirm_count`
+
 ---
 
 #### F9 — VETC Anomaly Signal (Mock) 🛤
@@ -323,10 +337,58 @@ const VOICE_CONFIG = {
 #### F10 — Weather Pre-warning ⛈
 
 **Behavior:**
-- Tích hợp Open-Meteo API (free) để lấy forecast mưa HCMC
-- Nếu forecast >70% mưa trong 2 giờ tới → pre-warn user về các điểm ngập lịch sử
-- Banner: "Dự báo mưa lớn lúc 16:00 — các điểm thường ngập: Nguyễn Hữu Cảnh, Đinh Bộ Lĩnh, Quang Trung..."
-- Dùng historical flood data (seeded) để populate warning
+- Tích hợp Open-Meteo API để lấy `current`, `hourly`, `wind gusts`, `rain intensity`
+- Nếu có `OPENWEATHER_API_KEY`, ingest thêm government weather alerts qua OpenWeather One Call
+- Nếu forecast >70% hoặc rain intensity/gust vượt ngưỡng → pre-warn user trước khi route-check
+- Banner và intelligence copy phải được generate từ data thật, không hard-code danh sách điểm ngập
+- Weather signal được lưu vào `weather_forecasts` để phục vụ analytics và risk scoring
+
+**Signal tiers:**
+1. `Forecast signal`: Open-Meteo current/hourly rain, gusts, weather code
+2. `Official alert signal`: OpenWeather / CAP-compatible government alerts (nếu có key/feed)
+3. `Ground truth signal`: flood events từ news/social/camera/user report/VETC partner data
+
+**Acceptance criteria:**
+- [ ] `/api/weather/forecast` trả về current weather + hourly forecast thật
+- [ ] Hỗ trợ government alerts nếu có provider key
+- [ ] Không còn hard-code alert copy kiểu giờ cố định / street cố định
+- [ ] Frontend intelligence banner cập nhật từ payload realtime
+
+---
+
+#### F11 — Real-time Flood Signal Fusion 🛰
+
+**Behavior:**
+- Hệ thống không phụ thuộc một nguồn duy nhất; phải hợp nhất nhiều `signal` để quyết định flood confidence.
+- Thứ tự ưu tiên nguồn thật sau hackathon:
+  1. Weather APIs realtime (`Open-Meteo`, `Tomorrow.io`, `OpenWeather`)
+  2. Radar / precipitation map overlays (`RainViewer` hoặc provider thương mại tương đương)
+  3. Camera giao thông / RTSP snapshots để detect ngập bằng CV
+  4. User reports, báo điện tử, social extraction
+  5. Partner mobility data (Tasco/VETC) khi có quyền truy cập
+- Mỗi signal được chấm điểm theo loại nguồn, độ mới và mức độ tương quan địa lý trước khi nâng confidence của `FloodEvent`.
+
+**Post-hackathon implementation notes:**
+- Camera không phải API weather; cần ingestion pipeline riêng: `RTSP/ONVIF -> frame capture -> CV inference -> flood signal`
+- Radio/loa/phát thanh có thể dùng như nguồn phụ: `audio stream -> speech-to-text -> event extraction`
+- Không dùng RainViewer cho production thương mại nếu chưa xác minh lại licensing.
+
+**Execution plan:**
+1. Weather + crawl layer
+  - Open-Meteo/OpenWeather cho pre-warning
+  - Exa/news/social crawl cho textual evidence
+2. Crowd-report layer
+  - User report từ web/app để tạo ground-truth cục bộ nhanh nhất
+  - Duplicate detection trong bán kính 200m, cửa sổ 2 giờ
+3. Camera pilot layer
+  - Chọn 2–5 camera hotspot hợp pháp, snapshot 15–30 giây/lần
+  - Rule-based / CV inference để sinh `camera_signal`
+4. Radio/audio layer
+  - Ingest audio bulletin, speech-to-text, extract location/severity
+5. Signal fusion
+  - Weather tăng risk
+  - Crawl/news/social tăng evidence
+  - Camera/user reports tăng confirmation
 
 ---
 
@@ -347,25 +409,26 @@ const VOICE_CONFIG = {
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    DATA SOURCES (External)                   │
-│  Facebook Groups │ VnExpress/Tuổi Trẻ │ IMHEN │ VETC (mock) │
+│ Facebook Groups │ VnExpress/Tuổi Trẻ │ Open-Meteo │ OpenWeather Alerts │ VETC (mock) │
 └──────────┬──────────────┬─────────────────┬────────────────-┘
            │              │                 │
            ▼              ▼                 ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                INGESTION LAYER                               │
-│         Exa.ai Neural Search  ←──── n8n Cron (5 min)        │
+│ Exa.ai Neural Search │ Weather Providers │ Future Camera Ingest │
 └─────────────────────┬───────────────────────────────────────┘
                       │  raw articles + snippets
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                AI PROCESSING LAYER                           │
 │  GPT-4o Extract & Verify  →  Structured FloodEvent JSON     │
+│  Signal Fusion / Scoring  →  Weather + Alerts + Flood Event │
 └─────────────────────┬───────────────────────────────────────┘
                       │  { street, district, depth, confidence }
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                BACKEND (Next.js API Routes)                  │
-│  /api/floods        /api/route-check      /api/notify        │
+│ /api/floods /api/weather/forecast /api/route-check /api/notify │
 │  Supabase DB  ←──→  Redis Cache (5min TTL)                   │
 └──────┬──────────────────────────────────────────────────────┘
        │  flood zones JSON + audio URLs
@@ -383,7 +446,7 @@ const VOICE_CONFIG = {
 └─────────────┘              └────────────────┘
 
 Background loop (mỗi 5 phút, không cần user):
-n8n → Exa.ai → GPT-4o → DB → Map update
+n8n → Exa.ai + Weather APIs → GPT-4o / signal fusion → DB → Map update
 
 On-demand (khi user request):
 User input route → Check flood DB → ElevenLabs alert → Display
@@ -542,6 +605,31 @@ const anomaly_score = Math.min(1, Math.max(0, (dropRatio - 0.1) / 0.6));
 
 ---
 
+#### Open-Meteo + OpenWeather — Realtime Weather & Alerts
+```javascript
+// Current + hourly precipitation/gusts from Open-Meteo
+const meteo = await fetch(
+  `https://api.open-meteo.com/v1/forecast?latitude=10.7769&longitude=106.7009` +
+  `&current=temperature_2m,rain,wind_speed_10m,wind_gusts_10m,weather_code` +
+  `&hourly=precipitation_probability,rain,wind_gusts_10m&forecast_days=1&timezone=UTC`
+).then((r) => r.json())
+
+// Optional government alerts from OpenWeather One Call 3.0
+const officialAlerts = process.env.OPENWEATHER_API_KEY
+  ? await fetch(
+      `https://api.openweathermap.org/data/3.0/onecall?lat=10.7769&lon=106.7009` +
+      `&exclude=minutely,hourly,daily&units=metric&appid=${process.env.OPENWEATHER_API_KEY}`
+    ).then((r) => r.json())
+  : { alerts: [] }
+```
+
+**Lý do dùng:**
+- Open-Meteo: nguồn nhẹ, nhanh, tốt cho pre-warning và realtime weather core
+- OpenWeather: bổ sung government-issued alerts khi provider hỗ trợ
+- Cả hai chỉ là `weather signal`, chưa phải `ground-truth flood confirmation`
+
+---
+
 #### Mapbox GL JS
 ```javascript
 // Flood Heatmap Layer
@@ -598,6 +686,21 @@ interface FloodSource {
   published_at: Date;
   source_type: 'news' | 'social' | 'government' | 'vetc_mock' | 'user_report';
 }
+
+interface WeatherSignal {
+  id: string;
+  provider: 'open-meteo' | 'openweather' | 'tomorrow-io';
+  signal_type: 'forecast' | 'official_alert' | 'radar';
+  area_label: string;
+  probability: number | null;
+  rain_mm: number | null;
+  wind_gust_kmh: number | null;
+  weather_code: number | null;
+  starts_at: Date | null;
+  ends_at: Date | null;
+  severity: 'low' | 'medium' | 'high';
+  raw_payload: unknown;
+}
 ```
 
 ### SavedRoute
@@ -643,6 +746,9 @@ GET  /api/floods
      Query: ?district=all&severity=all&limit=50
      Response: FloodEvent[]
      Cache: Redis 5 min
+
+GET  /api/weather/forecast
+  Response: { current, hourly, alert, governmentAlerts, source }
 
 GET  /api/floods/:id
      Response: FloodEvent với full sources
@@ -767,7 +873,7 @@ POST /api/internal/simulate-rain
 
 **Dev B:**
 - [ ] VETC anomaly signal (mock) có story rõ ràng
-- [ ] Weather pre-warning: Open-Meteo API → banner "Dự báo mưa lúc 16:00"
+- [ ] Weather pre-warning: Open-Meteo current/hourly + optional OpenWeather alerts
 - [ ] Crowdsource report: nút "Báo ngập tại đây" → form đơn giản
 - [ ] Performance: Redis cache cho `/api/floods`, optimize Mapbox layer rendering
 - [ ] Seed historical data: 30 ngày ngập điểm đen HCMC (mock nhưng realistic)
@@ -862,11 +968,13 @@ FloodSense tích hợp tự nhiên cả 4 sponsor bounties (Exa, ElevenLabs, Tra
 
 | Rủi ro | Xác suất | Impact | Mitigation |
 |--------|----------|--------|------------|
-| Exa.ai trả về ít/xấu data khi không mưa | Cao | Cao | **Simulate Rain button** — không phụ thuộc data thật cho demo |
+| Exa.ai trả về ít/xấu data khi không mưa | Cao | Cao | **Simulate Rain button** + weather/radar signals để không phụ thuộc một nguồn |
 | GPT-4o parse sai format JSON | Trung bình | Trung bình | Validation layer + retry với temperature=0, thêm few-shot examples vào prompt |
 | ElevenLabs rate limit trong demo | Thấp | Cao | Pre-generate và cache audio cho 10 alert templates phổ biến nhất |
 | Mapbox GL lag trên mobile cũ | Trung bình | Trung bình | Giảm số layers, lazy load markers, dùng cluster cho >50 points |
 | Chưa có sandbox/quyền truy cập dữ liệu Tasco/VETC | Cao | Thấp | Mock data với story rõ ràng — pitch concept thay vì live integration |
+| Weather provider không có government alerts cho VN | Trung bình | Trung bình | Treat official alerts as optional tier; vẫn dùng Open-Meteo + social/news/camera signals |
+| Radar/provider free tier bị giới hạn license | Trung bình | Trung bình | Chỉ dùng cho demo/dev hoặc chuyển sang provider thương mại trước production |
 | n8n workflow bị timeout | Thấp | Trung bình | Set timeout 30s, retry logic, fallback manual trigger |
 | Supabase free tier quota | Thấp | Thấp | Rate limit API calls, aggressive caching với Redis |
 | Không đủ thời gian làm PWA | Trung bình | Thấp | Demo trên mobile browser là đủ — PWA là nice-to-have |
@@ -900,9 +1008,9 @@ FloodSense tích hợp tự nhiên cả 4 sponsor bounties (Exa, ElevenLabs, Tra
 
 ### 6-Month Roadmap (Post-Hackathon)
 
-**Tháng 1–2:** Launch beta HCMC, onboard 5,000 users, validate retention
-**Tháng 3–4:** Tích hợp dữ liệu Tasco/VETC (khi có sandbox/được cấp quyền), ra mắt B2B API, pitch Hà Nội
-**Tháng 5–6:** Mở rộng Hà Nội, Đà Nẵng, đàm phán Series A với GenAI Fund
+**Tháng 1–2:** Launch beta HCMC, onboard 5,000 users, validate retention, thêm weather/radar stack thật
+**Tháng 3–4:** Thêm camera pilot 2–3 điểm nóng ngập và user report verification flow; tích hợp dữ liệu Tasco/VETC khi có sandbox/quyền truy cập
+**Tháng 5–6:** Mở rộng Hà Nội, Đà Nẵng, ra mắt B2B risk API, đàm phán Series A với GenAI Fund
 
 ### Competitive Moat (sau 6 tháng)
 
@@ -927,6 +1035,7 @@ NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ1Ijo...
 # AI & Search
 OPENAI_API_KEY=sk-...
 EXA_API_KEY=<YOUR_KEY>
+OPENWEATHER_API_KEY=<OPTIONAL_FOR_GOV_ALERTS>
 ELEVENLABS_API_KEY=...
 ELEVENLABS_VOICE_FEMALE_ID=...
 ELEVENLABS_VOICE_MALE_ID=...

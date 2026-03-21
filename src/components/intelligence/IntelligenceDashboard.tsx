@@ -25,6 +25,7 @@ export default function IntelligenceDashboard({ controller }: Props) {
     savedRouteInsights,
     historyBars,
     historySummary,
+    refreshFloods,
   } = controller
 
   return (
@@ -53,6 +54,8 @@ export default function IntelligenceDashboard({ controller }: Props) {
                   primaryMetric={crowdsourceInsight.primaryMetric}
                   secondaryMetric={crowdsourceInsight.secondaryMetric}
                   districtLabel={crowdsourceInsight.districtLabel}
+                  overviewItems={crowdsourceInsight.overviewItems}
+                  onReportSubmitted={refreshFloods}
                   className="lg:h-full"
                 />
               </section>

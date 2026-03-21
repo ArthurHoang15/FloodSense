@@ -18,6 +18,9 @@ export default function HomeDashboard({ controller }: Props) {
     floods,
     routeCoords,
     setRouteCoords,
+    mapSearchLocation,
+    setMapSearchLocation,
+    routeSearch,
     headlineFlood,
     telemetry,
     feedItems,
@@ -26,7 +29,6 @@ export default function HomeDashboard({ controller }: Props) {
     impactedRouteIds,
     routes,
     voiceEnabled,
-    weatherAlert,
   } = controller
 
   return (
@@ -35,18 +37,12 @@ export default function HomeDashboard({ controller }: Props) {
         <NavigationRail telemetry={telemetry} activeItem="flood-feed" />
 
         <main className="min-w-0 flex-1 px-3 pb-24 pt-4 md:px-6 md:pt-6 xl:pb-10">
-          {weatherAlert ? (
-            <div className="mb-4 rounded-3xl border border-primary-container/20 bg-primary-container/12 px-4 py-4 text-sm text-primary shadow-ambient">
-              {weatherAlert.message}
-            </div>
-          ) : null}
-
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
             <div className="min-w-0">
               <section className="relative">
                 <CriticalAlertBanner flood={headlineFlood} />
-                <MapStage floods={floods} routeCoords={routeCoords} headlineFlood={headlineFlood} heavyCount={stats.heavyCount} />
-                <MapControlDock />
+                <MapStage floods={floods} routeCoords={routeCoords} focusLocation={mapSearchLocation} headlineFlood={headlineFlood} heavyCount={stats.heavyCount} />
+                <MapControlDock onSearchSelect={setMapSearchLocation} onRouteReady={setRouteCoords} routeSearch={routeSearch} />
                 <VoiceToggle />
                 <IntelligenceFeed items={feedItems} />
               </section>
@@ -68,7 +64,7 @@ export default function HomeDashboard({ controller }: Props) {
             </div>
 
             <div className="xl:sticky xl:top-4 xl:self-start">
-              <OperationsDock onRouteReady={setRouteCoords} lastAlert={lastAlert} impactedRouteIds={impactedRouteIds} />
+              <OperationsDock onRouteReady={setRouteCoords} lastAlert={lastAlert} impactedRouteIds={impactedRouteIds} routeSearch={routeSearch} />
             </div>
           </div>
         </main>

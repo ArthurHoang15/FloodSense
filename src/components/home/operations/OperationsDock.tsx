@@ -4,19 +4,21 @@ import { useFloodStore } from '@/stores/floodStore'
 import NotificationsPanel from '@/components/home/operations/NotificationsPanel'
 import RoutePlannerPanel from '@/components/home/operations/RoutePlannerPanel'
 import SavedRoutesPanel from '@/components/home/operations/SavedRoutesPanel'
+import type { SharedRouteSearchState } from '@/hooks/useDashboardController'
 
 type Props = {
   onRouteReady: (coords: { lat: number; lng: number }[]) => void
   lastAlert: { title: string; body: string } | null
   impactedRouteIds: string[]
+  routeSearch: SharedRouteSearchState
 }
 
-export default function OperationsDock({ onRouteReady, lastAlert, impactedRouteIds }: Props) {
+export default function OperationsDock({ onRouteReady, lastAlert, impactedRouteIds, routeSearch }: Props) {
   const { simulating, startSimulateRain, resetSimulated, fetchFloods } = useFloodStore()
 
   return (
     <div className="relative z-20 mt-6 grid gap-4 xl:mt-0 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
-      <RoutePlannerPanel onRouteReady={onRouteReady} />
+      <RoutePlannerPanel onRouteReady={onRouteReady} sharedSearch={routeSearch} />
       <SurfaceCard className="p-5">
         <div className="fs-label">Demo controls</div>
         <div className="mt-2 font-headline text-xl font-bold tracking-[-0.05em] text-on-surface">Simulation</div>

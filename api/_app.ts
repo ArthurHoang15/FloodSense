@@ -12,6 +12,8 @@ import dotenv from 'dotenv'
 import authRoutes from './_routes/auth.js'
 import createFloodRoutes from './_routes/floods.js'
 import createInternalRoutes from './_routes/internal.js'
+import createLocationRoutes from './_routes/locations.js'
+import createReportRoutes from './_routes/reports.js'
 import createRouteCheckRoutes from './_routes/routeCheck.js'
 import createSavedRoutesRoutes from './_routes/savedRoutes.js'
 import createVoiceRoutes from './_routes/voice.js'
@@ -37,6 +39,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
  */
 app.use('/api/auth', authRoutes)
 app.use('/api/floods', createFloodRoutes(floodStore))
+app.use('/api/locations', createLocationRoutes())
+app.use('/api/report-flood', createReportRoutes(floodStore))
 app.use('/api/route-check', createRouteCheckRoutes(floodStore))
 app.use('/api/internal', createInternalRoutes(floodStore))
 app.use('/api/saved-routes', createSavedRoutesRoutes())

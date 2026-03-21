@@ -2,19 +2,20 @@ import FloodMap from '@/components/FloodMap'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 import SeverityBadge from '@/components/ui/SeverityBadge'
 import { formatDepth } from '@/utils/floodPresentation'
-import type { FloodEvent, LatLng } from '../../../../shared/types'
+import type { AddressSuggestion, FloodEvent, LatLng } from '../../../../shared/types'
 
 type Props = {
   floods: FloodEvent[]
   routeCoords: LatLng[] | null
+  focusLocation?: AddressSuggestion | null
   headlineFlood: FloodEvent | null
   heavyCount: number
 }
 
-export default function MapStage({ floods, routeCoords, headlineFlood, heavyCount }: Props) {
+export default function MapStage({ floods, routeCoords, focusLocation = null, headlineFlood, heavyCount }: Props) {
   return (
     <div className="relative h-[72vh] min-h-[640px] overflow-hidden rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest shadow-ambient md:h-[calc(100vh-140px)]">
-      <FloodMap floods={floods} routeCoords={routeCoords} />
+      <FloodMap floods={floods} routeCoords={routeCoords} focusLocation={focusLocation} />
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_35%,rgba(255,180,171,0.18),transparent_16%),radial-gradient(circle_at_68%_22%,rgba(254,179,0,0.18),transparent_14%),linear-gradient(180deg,rgba(10,14,24,0.08),rgba(10,14,24,0.28))]" />
 

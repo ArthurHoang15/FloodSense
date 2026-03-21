@@ -21,6 +21,12 @@ export interface LatLng {
   lng: number
 }
 
+export interface AddressSuggestion {
+  id: string
+  label: string
+  coordinates: LatLng
+}
+
 export interface FloodEvent {
   id: string
   street_name: string
@@ -62,4 +68,27 @@ export interface RouteCheckResponse {
   floodZones: FloodEvent[]
   warnings: string[]
   alertText: string | null
+}
+
+export type ReportStatus = 'pending' | 'confirmed' | 'rejected'
+
+export interface UserReport {
+  id: string
+  anonymous_id: string | null
+  coordinates: LatLng
+  severity: Severity
+  note: string | null
+  location_text: string | null
+  status: ReportStatus
+  confirm_count: number
+  flood_event_id: string | null
+  created_at: string
+}
+
+export interface ReportFloodRequest {
+  locationText?: string
+  lat?: number
+  lng?: number
+  severity: Severity
+  note?: string
 }

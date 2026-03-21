@@ -23,7 +23,20 @@ function makeMeteoResponse(probs: number[], rains: number[]) {
     return d.toISOString().slice(0, 16).replace('T', 'T') // "2026-03-21T08:00"
   })
   return {
-    hourly: { time: times, precipitation_probability: probs, rain: rains },
+    current: {
+      time: times[0] ?? FROZEN_NOW.toISOString().slice(0, 16),
+      temperature_2m: 29,
+      rain: rains[0] ?? 0,
+      wind_speed_10m: 18,
+      wind_gusts_10m: 24,
+      weather_code: 61,
+    },
+    hourly: {
+      time: times,
+      precipitation_probability: probs,
+      rain: rains,
+      wind_gusts_10m: probs.map((probability) => Math.max(12, Math.round(probability / 2))),
+    },
   }
 }
 
@@ -40,6 +53,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(FROZEN_NOW)
   getSb().__resetAll()
+  delete process.env.OPENWEATHER_API_KEY
 })
 
 afterEach(() => {
@@ -73,6 +87,21 @@ describe('GET /weather/forecast — Open-Meteo success', () => {
     })
   })
 
+  it('returns current conditions from Open-Meteo', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(makeMeteoResponse([60, 30], [2.0, 0.5])),
+    }))
+    const res = await request(app).get('/forecast')
+    expect(res.body.current).toMatchObject({
+      temperature_c: 29,
+      rain_mm: 2,
+      wind_speed_kmh: 18,
+      wind_gusts_kmh: 24,
+      weather_code: 61,
+    })
+  })
+
   it('max probability >= 70 → alert object with ⛈ message', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -82,6 +111,39 @@ describe('GET /weather/forecast — Open-Meteo success', () => {
     expect(res.body.alert).not.toBeNull()
     expect(res.body.alert.probability).toBe(80)
     expect(res.body.alert.message).toContain('⛈')
+  })
+
+  it('returns government alerts when OpenWeather key is configured', async () => {
+    process.env.OPENWEATHER_API_KEY = 'test-key'
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(makeMeteoResponse([80, 60, 40], [5.0, 2.0, 0.5])),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          alerts: [
+            {
+              sender_name: 'VN Weather Desk',
+              event: 'Severe rain warning',
+              start: Math.floor(FROZEN_NOW.getTime() / 1000),
+              end: Math.floor((FROZEN_NOW.getTime() + 3_600_000) / 1000),
+              description: 'Localized heavy rainfall expected.',
+              tags: ['rain', 'flood'],
+            },
+          ],
+        }),
+      }))
+
+    const res = await request(app).get('/forecast')
+    expect(res.status).toBe(200)
+    expect(res.body.governmentAlerts).toHaveLength(1)
+    expect(res.body.governmentAlerts[0]).toMatchObject({
+      sender_name: 'VN Weather Desk',
+      event: 'Severe rain warning',
+    })
+    expect(res.body.source.alerts).toBe('openweather')
   })
 
   it('all probabilities < 70 → alert is null', async () => {

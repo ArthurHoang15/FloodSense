@@ -1,12 +1,12 @@
 import { create } from 'zustand'
-import type { RouteCheckResponse } from '../../shared/types'
+import type { RouteCheckRequest, RouteCheckResponse } from '../../shared/types'
 import { apiPost } from '@/utils/api'
 
 type RouteCheckState = {
   loading: boolean
   error: string | null
   data: RouteCheckResponse | null
-  checkRoute: (origin: string, destination: string) => Promise<RouteCheckResponse | null>
+  checkRoute: (origin: RouteCheckRequest['origin'], destination: RouteCheckRequest['destination']) => Promise<RouteCheckResponse | null>
   clear: () => void
 }
 
