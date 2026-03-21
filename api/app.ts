@@ -13,6 +13,9 @@ import authRoutes from './routes/auth.js'
 import createFloodRoutes from './routes/floods.js'
 import createInternalRoutes from './routes/internal.js'
 import createRouteCheckRoutes from './routes/routeCheck.js'
+import createSavedRoutesRoutes from './routes/savedRoutes.js'
+import createVoiceRoutes from './routes/voice.js'
+import createWeatherRoutes from './routes/weather.js'
 import type { FloodStore } from './lib/mockData.js'
 
 // load env
@@ -36,6 +39,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/floods', createFloodRoutes(floodStore))
 app.use('/api/route-check', createRouteCheckRoutes(floodStore))
 app.use('/api/internal', createInternalRoutes(floodStore))
+app.use('/api/saved-routes', createSavedRoutesRoutes())
+app.use('/api/voice', createVoiceRoutes())
+app.use('/api/weather', createWeatherRoutes())
 
 /**
  * health

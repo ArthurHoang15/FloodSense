@@ -3,7 +3,11 @@ import type { FloodStore } from '../lib/mockData.js'
 import { getFloods } from '../lib/mockData.js'
 import type { LatLng, RouteCheckRequest, RouteCheckResponse } from '../../shared/types.js'
 import { bboxFromCoords, haversineMeters, interpolateLine } from '../lib/geo.js'
-import { mockGeocode } from '../lib/geocode.js'
+import { geocode, mockGeocode } from '../lib/geocode.js'
+import supabase, { toFloodEvent } from '../lib/supabase.js'
+
+const IS_LIVE = process.env.DATA_MODE === 'live'
+const RADIUS_METERS = 200
 
 function asLatLng(input: unknown): LatLng | null {
   if (!input || typeof input !== 'object') return null
@@ -14,12 +18,16 @@ function asLatLng(input: unknown): LatLng | null {
   return { lat, lng }
 }
 
-function resolveLocation(input: RouteCheckRequest['origin']): LatLng | null {
-  if (typeof input === 'string') return mockGeocode(input)
+async function resolveLocation(input: RouteCheckRequest['origin']): Promise<LatLng | null> {
+  if (typeof input === 'string') {
+    return IS_LIVE ? geocode(input) : mockGeocode(input)
+  }
   const ll = asLatLng(input)
   if (ll) return ll
   const addr = (input as { address?: unknown })?.address
-  if (typeof addr === 'string') return mockGeocode(addr)
+  if (typeof addr === 'string') {
+    return IS_LIVE ? geocode(addr) : mockGeocode(addr)
+  }
   return null
 }
 
@@ -32,10 +40,11 @@ function pickSeverityWord(count: number): string {
 export default function createRouteCheckRoutes(store: FloodStore): express.Router {
   const router = express.Router()
 
-  router.post('/', (req: Request, res: Response) => {
+  router.post('/', async (req: Request, res: Response) => {
     const body = req.body as RouteCheckRequest
-    const origin = resolveLocation(body?.origin)
-    const destination = resolveLocation(body?.destination)
+    const origin = await resolveLocation(body?.origin)
+    const destination = await resolveLocation(body?.destination)
+
     if (!origin || !destination) {
       res.status(400).json({ success: false, error: 'Invalid origin/destination' })
       return
@@ -44,41 +53,55 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
     const coords = interpolateLine(origin, destination, 40)
     const bounding_box = bboxFromCoords(coords)
 
-    const radiusMeters = 200
-    const floods = getFloods(store)
-    const affected = floods.filter((f) => {
-      const p = f.coordinates
-      for (const c of coords) {
-        if (haversineMeters(p, c) <= radiusMeters) return true
+    try {
+      let floods
+      if (IS_LIVE) {
+        // Use Supabase stored function for bbox query
+        const { data, error } = await supabase.rpc('get_floods_in_bbox', {
+          p_north: bounding_box.north,
+          p_south: bounding_box.south,
+          p_east: bounding_box.east,
+          p_west: bounding_box.west,
+        })
+        if (error) throw error
+        floods = (data ?? []).map((row: Record<string, unknown>) => toFloodEvent(row))
+      } else {
+        floods = getFloods(store)
       }
-      return false
-    })
 
-    const warnings: string[] = []
-    if (affected.length > 0) {
-      warnings.push(`Route intersects ${affected.length} flood zone(s).`)
-      const top = affected
-        .slice(0, 3)
-        .map((z) => `${z.street_name} (${z.district})`)
-        .join(', ')
-      warnings.push(`Hotspots: ${top}`)
-    } else {
-      warnings.push('No flood zones detected along this route (mock check).')
+      // Fine-grained 200 m filter along interpolated route points
+      const affected = floods.filter((f) => {
+        const p = f.coordinates
+        for (const c of coords) {
+          if (haversineMeters(p, c) <= RADIUS_METERS) return true
+        }
+        return false
+      })
+
+      const warnings: string[] = []
+      if (affected.length > 0) {
+        warnings.push(`Route intersects ${affected.length} flood zone(s).`)
+        const top = affected
+          .slice(0, 3)
+          .map((z) => `${z.street_name} (${z.district})`)
+          .join(', ')
+        warnings.push(`Hotspots: ${top}`)
+      } else {
+        warnings.push('No flood zones detected along this route.')
+      }
+
+      const alertText =
+        affected.length > 0
+          ? `Cảnh báo — tuyến đường của bạn đi qua ${affected.length} điểm ngập. ` +
+            `${affected[0]?.street_name ?? ''} bị ảnh hưởng. Mức độ rủi ro: ${pickSeverityWord(affected.length)}.`
+          : null
+
+      const payload: RouteCheckResponse = { route: { coords, bounding_box }, floodZones: affected, warnings, alertText }
+      res.status(200).json({ success: true, ...payload })
+    } catch (err) {
+      console.error('[route-check] error:', err)
+      res.status(500).json({ success: false, error: 'Route check failed' })
     }
-
-    const alertText =
-      affected.length > 0
-        ? `Warning. Flood detected on your route. ${affected[0]?.street_name ?? ''} is affected. Risk level: ${pickSeverityWord(affected.length)}.`
-        : null
-
-    const payload: RouteCheckResponse = {
-      route: { coords, bounding_box },
-      floodZones: affected,
-      warnings,
-      alertText,
-    }
-
-    res.status(200).json({ success: true, ...payload })
   })
 
   return router

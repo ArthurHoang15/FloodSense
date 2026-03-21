@@ -12,6 +12,9 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { useInterval } from '@/hooks/useInterval'
 import type { FloodEvent, LatLng, SavedRoute } from '../../shared/types'
 import { haversineMeters } from '@/utils/geo'
+import { apiGet } from '@/utils/api'
+
+type WeatherAlert = { probability: number; time: string | null; message: string }
 
 function floodHitsRoute(f: FloodEvent, r: SavedRoute): boolean {
   const p = { lat: f.coordinates.lat, lng: f.coordinates.lng }
@@ -38,16 +41,22 @@ export default function Home() {
   const { fetchFloods, simulating, stepSimulation } = useFloodStore()
   const floods = useFloodStore((s) => s.displayFloods())
   const routeData = useRouteCheckStore((s) => s.data)
-  const { routes } = useSavedRoutesStore()
+  const { routes, loadRoutes } = useSavedRoutesStore()
   const { notificationsEnabled } = useSettingsStore()
 
   const [routeCoords, setRouteCoords] = useState<LatLng[] | null>(null)
   const [lastAlert, setLastAlert] = useState<{ title: string; body: string } | null>(null)
+  const [weatherAlert, setWeatherAlert] = useState<WeatherAlert | null>(null)
   const notifiedRef = useRef<Record<string, true>>({})
 
   useEffect(() => {
     fetchFloods().catch(() => {})
-  }, [fetchFloods])
+    loadRoutes().catch(() => {})
+
+    apiGet<{ success: boolean; alert: WeatherAlert | null }>('/api/weather/forecast')
+      .then((res) => { if (res.alert) setWeatherAlert(res.alert) })
+      .catch(() => {})
+  }, [fetchFloods, loadRoutes])
 
   useEffect(() => {
     if (routeData?.route?.coords?.length) setRouteCoords(routeData.route.coords)
@@ -97,11 +106,17 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-4 py-6">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-xl font-semibold tracking-tight">FloodSense (Mock-first)</div>
+            <div className="text-xl font-semibold tracking-tight">FloodSense HCM</div>
             <div className="mt-1 text-sm text-zinc-400">HCMC flood heatmap, route risk, alerts, and demo simulation.</div>
           </div>
           <div className="text-xs text-zinc-500">Backend: Express on :3001 · Client: Vite</div>
         </div>
+
+        {weatherAlert && (
+          <div className="mt-4 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">
+            {weatherAlert.message}
+          </div>
+        )}
 
         <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
           <div className="relative h-[70vh] min-h-[520px]">
