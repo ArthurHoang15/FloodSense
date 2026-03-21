@@ -3,7 +3,7 @@ import express from 'express'
 import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
 
-vi.mock('../../lib/supabase.js', async () => {
+vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
   ;(globalThis as Record<string, unknown>).__weatherSb = sb
@@ -30,7 +30,7 @@ function makeMeteoResponse(probs: number[], rains: number[]) {
 let app: express.Application
 
 beforeAll(async () => {
-  const { default: createWeatherRoutes } = await import('../../routes/weather.js')
+  const { default: createWeatherRoutes } = await import('../../_routes/weather.js')
   app = express()
   app.use(express.json())
   app.use('/', createWeatherRoutes())

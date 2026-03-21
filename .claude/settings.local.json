@@ -8,7 +8,11 @@
       "Bash(timeout 10 bun run server:dev)",
       "Bash(bun test:*)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(powershell -Command \"Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\lib'' -NewName ''_lib''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\routes'' -NewName ''_routes''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\app.ts'' -NewName ''_app.ts''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\server.ts'' -NewName ''_server.ts''\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"Remove-Item -Path ''api\\\\lib'' -Recurse -Force; Remove-Item -Path ''api\\\\routes'' -Recurse -Force\")",
+      "Bash(echo \"TS_EXIT:$?\")"
     ]
   }
 }

@@ -1,5 +1,5 @@
 import express, { type Request, type Response } from 'express'
-import supabase from '../lib/supabase.js'
+import supabase from '../_lib/supabase.js'
 
 const HCMC_LAT = 10.7769
 const HCMC_LNG = 106.7009

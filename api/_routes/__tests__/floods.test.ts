@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import express from 'express'
 import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
-import type { FloodStore } from '../../lib/mockData.js'
+import type { FloodStore } from '../../_lib/mockData.js'
 
 // ── Supabase mock (hoisted) ────────────────────────────────────────────────
-vi.mock('../../lib/supabase.js', async () => {
+vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
   ;(globalThis as Record<string, unknown>).__floodsSb = sb
@@ -36,7 +36,7 @@ describe('GET /floods — live mode', () => {
   beforeAll(async () => {
     process.env.DATA_MODE = 'live'
     vi.resetModules()
-    const mod = await import('../../routes/floods.js')
+    const mod = await import('../../_routes/floods.js')
     createFloodRoutes = mod.default
     app = express()
     app.use(express.json())
@@ -107,7 +107,7 @@ describe('GET /floods — mock mode', () => {
   beforeAll(async () => {
     process.env.DATA_MODE = 'mock'
     vi.resetModules()
-    const mod = await import('../../routes/floods.js')
+    const mod = await import('../../_routes/floods.js')
     const now = new Date(Date.now() + 3_600_000).toISOString()
     const store: FloodStore = {
       base: [
@@ -145,7 +145,7 @@ describe('GET /floods — mock mode', () => {
 
   it('empty store returns empty array', async () => {
     process.env.DATA_MODE = 'mock'
-    const mod2 = await import('../../routes/floods.js')
+    const mod2 = await import('../../_routes/floods.js')
     const emptyApp = express()
     emptyApp.use(express.json())
     emptyApp.use('/', mod2.default({ base: [], simulated: [] }))

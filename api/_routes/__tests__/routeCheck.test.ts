@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import express from 'express'
 import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
-import type { FloodStore } from '../../lib/mockData.js'
+import type { FloodStore } from '../../_lib/mockData.js'
 
-vi.mock('../../lib/supabase.js', async () => {
+vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
   ;(globalThis as Record<string, unknown>).__routeSb = sb
@@ -12,7 +12,7 @@ vi.mock('../../lib/supabase.js', async () => {
 })
 
 // geocode mock — used in live mode
-vi.mock('../../lib/geocode.js', () => ({
+vi.mock('../../_lib/geocode.js', () => ({
   geocode: vi.fn().mockResolvedValue({ lat: 10.8032, lng: 106.7078 }),
   mockGeocode: vi.fn((input: string) => {
     const known: Record<string, { lat: number; lng: number }> = {
@@ -50,7 +50,7 @@ describe('POST /route-check — mock mode', () => {
   beforeAll(async () => {
     process.env.DATA_MODE = 'mock'
     vi.resetModules()
-    const mod = await import('../../routes/routeCheck.js')
+    const mod = await import('../../_routes/routeCheck.js')
 
     // store with no floods
     emptyStore = { base: [], simulated: [] }
@@ -116,7 +116,7 @@ describe('POST /route-check — mock mode', () => {
   it('flood on route → non-empty floodZones and Vietnamese alertText', async () => {
     // build separate app with a flood store
     process.env.DATA_MODE = 'mock'
-    const mod2 = await import('../../routes/routeCheck.js')
+    const mod2 = await import('../../_routes/routeCheck.js')
     const floodApp = express()
     floodApp.use(express.json())
     floodApp.use('/', mod2.default(storeWithFlood))
@@ -135,7 +135,7 @@ describe('POST /route-check — live mode', () => {
   beforeAll(async () => {
     process.env.DATA_MODE = 'live'
     vi.resetModules()
-    const mod = await import('../../routes/routeCheck.js')
+    const mod = await import('../../_routes/routeCheck.js')
     app = express()
     app.use(express.json())
     app.use('/', mod.default({ base: [], simulated: [] }))

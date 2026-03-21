@@ -2,24 +2,24 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import express from 'express'
 import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
-import type { FloodStore } from '../../lib/mockData.js'
+import type { FloodStore } from '../../_lib/mockData.js'
 
-vi.mock('../../lib/supabase.js', async () => {
+vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
   ;(globalThis as Record<string, unknown>).__internalSb = sb
   return { default: sb, toFloodEvent: vi.fn((row: Record<string, unknown>) => row) }
 })
 
-vi.mock('../../lib/exa.js', () => ({
+vi.mock('../../_lib/exa.js', () => ({
   searchFloodNews: vi.fn().mockResolvedValue([]),
 }))
 
-vi.mock('../../lib/openai.js', () => ({
+vi.mock('../../_lib/openai.js', () => ({
   extractFloodData: vi.fn().mockResolvedValue([]),
 }))
 
-vi.mock('../../lib/geocode.js', () => ({
+vi.mock('../../_lib/geocode.js', () => ({
   geocode: vi.fn().mockResolvedValue({ lat: 10.77, lng: 106.7 }),
   mockGeocode: vi.fn().mockReturnValue({ lat: 10.77, lng: 106.7 }),
 }))
@@ -41,7 +41,7 @@ describe('internal routes — mock mode (DATA_MODE=mock)', () => {
     process.env.DATA_MODE = 'mock'
     process.env.INTERNAL_SECRET = SECRET
     vi.resetModules()
-    const { default: createInternalRoutes } = await import('../../routes/internal.js')
+    const { default: createInternalRoutes } = await import('../../_routes/internal.js')
     app = express()
     app.use(express.json())
     app.use('/', createInternalRoutes(store))
@@ -121,7 +121,7 @@ describe('simulate-rain — no INTERNAL_SECRET configured', () => {
     delete process.env.INTERNAL_SECRET
     process.env.DATA_MODE = 'mock'
     vi.resetModules()
-    const { default: createInternalRoutes } = await import('../../routes/internal.js')
+    const { default: createInternalRoutes } = await import('../../_routes/internal.js')
     app = express()
     app.use(express.json())
     app.use('/', createInternalRoutes(store))
@@ -148,7 +148,7 @@ describe('internal routes — live mode', () => {
     process.env.INTERNAL_SECRET = SECRET
     process.env.EXA_API_KEY = 'test-exa-key'
     vi.resetModules()
-    const { default: createInternalRoutes } = await import('../../routes/internal.js')
+    const { default: createInternalRoutes } = await import('../../_routes/internal.js')
     app = express()
     app.use(express.json())
     app.use('/', createInternalRoutes(store))

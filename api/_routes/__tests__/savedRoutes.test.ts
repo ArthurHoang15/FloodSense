@@ -3,7 +3,7 @@ import express from 'express'
 import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
 
-vi.mock('../../lib/supabase.js', async () => {
+vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
   ;(globalThis as Record<string, unknown>).__savedSb = sb
@@ -37,7 +37,7 @@ const VALID_BODY = {
 let app: express.Application
 
 beforeAll(async () => {
-  const { default: createSavedRoutesRoutes } = await import('../../routes/savedRoutes.js')
+  const { default: createSavedRoutesRoutes } = await import('../../_routes/savedRoutes.js')
   app = express()
   app.use(express.json())
   app.use('/', createSavedRoutesRoutes())

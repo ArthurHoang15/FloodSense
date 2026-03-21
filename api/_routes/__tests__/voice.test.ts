@@ -3,7 +3,7 @@ import express from 'express'
 import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
 
-vi.mock('../../lib/supabase.js', async () => {
+vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
   ;(globalThis as Record<string, unknown>).__voiceSb = sb
@@ -35,7 +35,7 @@ describe('POST /voice/generate — ElevenLabs configured', () => {
     process.env.ELEVENLABS_VOICE_FEMALE_ID = 'voice-female-id'
     process.env.ELEVENLABS_VOICE_MALE_ID = 'voice-male-id'
     vi.resetModules()
-    const { default: createVoiceRoutes } = await import('../../routes/voice.js')
+    const { default: createVoiceRoutes } = await import('../../_routes/voice.js')
     app = express()
     app.use(express.json())
     app.use('/', createVoiceRoutes())
@@ -107,7 +107,7 @@ describe('POST /voice/generate — no ELEVENLABS_API_KEY', () => {
     delete process.env.ELEVENLABS_API_KEY
     process.env.ELEVENLABS_VOICE_FEMALE_ID = 'voice-female-id'
     vi.resetModules()
-    const { default: createVoiceRoutes } = await import('../../routes/voice.js')
+    const { default: createVoiceRoutes } = await import('../../_routes/voice.js')
     app = express()
     app.use(express.json())
     app.use('/', createVoiceRoutes())
@@ -131,7 +131,7 @@ describe('POST /voice/generate — API key set but no voice IDs', () => {
     delete process.env.ELEVENLABS_VOICE_FEMALE_ID
     delete process.env.ELEVENLABS_VOICE_MALE_ID
     vi.resetModules()
-    const { default: createVoiceRoutes } = await import('../../routes/voice.js')
+    const { default: createVoiceRoutes } = await import('../../_routes/voice.js')
     app = express()
     app.use(express.json())
     app.use('/', createVoiceRoutes())
