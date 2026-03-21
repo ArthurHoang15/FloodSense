@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, Route, Save, Volume2, VolumeX } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 import SeverityBadge from '@/components/ui/SeverityBadge'
+import { cn } from '@/lib/utils'
 import { useRouteCheckStore } from '@/stores/routeCheckStore'
 import { useSettingsStore, type VoiceVariant } from '@/stores/settingsStore'
 import { useSavedRoutesStore } from '@/stores/savedRoutesStore'
@@ -10,9 +12,11 @@ import type { SavedRoute } from '../../../../shared/types'
 
 type Props = {
   onRouteReady: (coords: { lat: number; lng: number }[]) => void
+  mode?: 'compact' | 'page'
+  className?: string
 }
 
-export default function RoutePlannerPanel({ onRouteReady }: Props) {
+export default function RoutePlannerPanel({ onRouteReady, mode = 'compact', className }: Props) {
   const [origin, setOrigin] = useState('Q7')
   const [destination, setDestination] = useState('Tân Bình')
   const [routeName, setRouteName] = useState('Home → Work')
@@ -23,6 +27,7 @@ export default function RoutePlannerPanel({ onRouteReady }: Props) {
 
   const affectedCount = data?.floodZones.length ?? 0
   const canSave = !!data && data.route.coords.length > 1
+  const isPageMode = mode === 'page'
 
   const banner = useMemo(() => {
     if (!data) return null
@@ -69,7 +74,7 @@ export default function RoutePlannerPanel({ onRouteReady }: Props) {
   }
 
   return (
-    <SurfaceCard className="p-5">
+    <SurfaceCard className={cn(isPageMode ? 'p-5 md:p-6' : 'p-5', className)}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="fs-label">Route intelligence</div>
@@ -77,15 +82,23 @@ export default function RoutePlannerPanel({ onRouteReady }: Props) {
             <Route className="h-5 w-5 text-primary" />
             Route Check
           </div>
+          {isPageMode ? <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">Use the wider workspace to compare route risk, inspect on-map overlap, and save safe commutes without squeezing the decision flow into the sidebar column.</p> : null}
         </div>
-        <button type="button" onClick={() => setVoiceEnabled(!voiceEnabled)} className="fs-button-secondary px-3 py-2 text-xs">
-          {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          Voice
-        </button>
+        <div className="flex items-center gap-2">
+          {!isPageMode ? (
+            <Link to="/route-results" className="fs-button-secondary px-3 py-2 text-xs">
+              Open page
+            </Link>
+          ) : null}
+          <button type="button" onClick={() => setVoiceEnabled(!voiceEnabled)} className="fs-button-secondary px-3 py-2 text-xs">
+            {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            Voice
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-4">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+        <div className={isPageMode ? 'grid gap-4 md:grid-cols-2' : 'grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2'}>
           <div>
             <label className="fs-label">Origin</label>
             <input value={origin} onChange={(event) => setOrigin(event.target.value)} className="fs-input mt-2" placeholder="e.g. Q7" />
@@ -132,7 +145,7 @@ export default function RoutePlannerPanel({ onRouteReady }: Props) {
           </div>
         ) : null}
 
-        {affectedCount > 0 ? (
+        {affectedCount > 0 && !isPageMode ? (
           <div className="rounded-2xl border border-outline-variant/15 bg-surface-container p-4">
             <div className="text-sm font-semibold text-on-surface">Flood zones on route</div>
             <div className="mt-3 grid gap-3">
