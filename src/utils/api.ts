@@ -33,6 +33,16 @@ export async function apiPost<T>(url: string, body: unknown): Promise<T> {
   return (await res.json()) as T
 }
 
+export async function apiPostInternal<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: baseHeaders({ 'x-internal-secret': import.meta.env.VITE_INTERNAL_SECRET ?? '' }),
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+  return (await res.json()) as T
+}
+
 export async function apiPatch<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'PATCH',

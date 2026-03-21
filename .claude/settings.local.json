@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(grep -r \"import.*supabase\\\\|createClient\\\\|SupabaseClient\" . --include=*.ts --include=*.tsx --exclude-dir=node_modules)",
-      "Bash(grep -r \"VITE_\\\\|import.meta.env\" . --include=*.ts --include=*.tsx --exclude-dir=node_modules)"
+      "Bash(grep -r \"VITE_\\\\|import.meta.env\" . --include=*.ts --include=*.tsx --exclude-dir=node_modules)",
+      "Bash(bun install:*)",
+      "Bash(timeout 8 bun run server:dev)",
+      "Bash(timeout 10 bun run server:dev)",
+      "Bash(bun test:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(bun run:*)",
+      "Bash(powershell -Command \"Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\lib'' -NewName ''_lib''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\routes'' -NewName ''_routes''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\app.ts'' -NewName ''_app.ts''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\server.ts'' -NewName ''_server.ts''\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"Remove-Item -Path ''api\\\\lib'' -Recurse -Force; Remove-Item -Path ''api\\\\routes'' -Recurse -Force\")",
+      "Bash(echo \"TS_EXIT:$?\")"
     ]
   }
 }

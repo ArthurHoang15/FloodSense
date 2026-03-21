@@ -1,10 +1,10 @@
 import express, { type Request, type Response } from 'express'
-import type { FloodStore } from '../lib/mockData.js'
-import { getFloods } from '../lib/mockData.js'
+import type { FloodStore } from '../_lib/mockData.js'
+import { getFloods } from '../_lib/mockData.js'
 import type { LatLng, RouteCheckRequest, RouteCheckResponse } from '../../shared/types.js'
-import { bboxFromCoords, haversineMeters, interpolateLine } from '../lib/geo.js'
-import { geocode, mockGeocode } from '../lib/geocode.js'
-import supabase, { toFloodEvent } from '../lib/supabase.js'
+import { bboxFromCoords, haversineMeters, interpolateLine } from '../_lib/geo.js'
+import { geocode, mockGeocode } from '../_lib/geocode.js'
+import supabase, { toFloodEvent } from '../_lib/supabase.js'
 
 const IS_LIVE = process.env.DATA_MODE === 'live'
 const RADIUS_METERS = 200

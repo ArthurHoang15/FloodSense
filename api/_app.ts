@@ -9,14 +9,14 @@ import express, {
 } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import authRoutes from './routes/auth.js'
-import createFloodRoutes from './routes/floods.js'
-import createInternalRoutes from './routes/internal.js'
-import createRouteCheckRoutes from './routes/routeCheck.js'
-import createSavedRoutesRoutes from './routes/savedRoutes.js'
-import createVoiceRoutes from './routes/voice.js'
-import createWeatherRoutes from './routes/weather.js'
-import type { FloodStore } from './lib/mockData.js'
+import authRoutes from './_routes/auth.js'
+import createFloodRoutes from './_routes/floods.js'
+import createInternalRoutes from './_routes/internal.js'
+import createRouteCheckRoutes from './_routes/routeCheck.js'
+import createSavedRoutesRoutes from './_routes/savedRoutes.js'
+import createVoiceRoutes from './_routes/voice.js'
+import createWeatherRoutes from './_routes/weather.js'
+import type { FloodStore } from './_lib/mockData.js'
 
 // load env
 dotenv.config()

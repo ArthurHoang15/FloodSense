@@ -1,7 +1,7 @@
 import express, { type Request, type Response } from 'express'
-import type { FloodStore } from '../lib/mockData.js'
-import { getFloods } from '../lib/mockData.js'
-import supabase, { toFloodEvent } from '../lib/supabase.js'
+import type { FloodStore } from '../_lib/mockData.js'
+import { getFloods } from '../_lib/mockData.js'
+import supabase, { toFloodEvent } from '../_lib/supabase.js'
 
 const IS_LIVE = process.env.DATA_MODE === 'live'
 

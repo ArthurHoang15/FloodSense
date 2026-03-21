@@ -1,11 +1,11 @@
 import express, { type Request, type Response } from 'express'
-import supabase from '../lib/supabase.js'
+import supabase from '../_lib/supabase.js'
 
 const HCMC_LAT = 10.7769
 const HCMC_LNG = 106.7009
 const OPEN_METEO_URL =
   `https://api.open-meteo.com/v1/forecast?latitude=${HCMC_LAT}&longitude=${HCMC_LNG}` +
-  `&hourly=precipitation_probability,rain&forecast_days=1&timezone=Asia%2FHo_Chi_Minh`
+  `&hourly=precipitation_probability,rain&forecast_days=1&timezone=UTC`
 
 export interface HourlyForecast {
   time: string
@@ -43,27 +43,27 @@ export default function createWeatherRoutes(): express.Router {
           rain_mm: meteo.hourly.rain[i] ?? 0,
         }))
         .filter((h) => {
-          const d = new Date(h.time)
+          const d = new Date(h.time + 'Z')
           return d >= now && d <= sixHoursLater
         })
 
       // Upsert into weather_forecasts (fire-and-forget)
       if (hourly.length > 0) {
-        void supabase
-          .from('weather_forecasts')
-          .upsert(
-            hourly.map((h) => ({
-              location: 'HCMC',
-              forecast_time: new Date(h.time).toISOString(),
-              precipitation_probability: h.precipitation_probability,
-              rain_mm: h.rain_mm,
-              source: 'open_meteo',
-              fetched_at: now.toISOString(),
-            })),
-            { onConflict: 'location,forecast_time' },
-          )
-          .then()
-          .catch((e) => console.warn('[weather] upsert failed:', e))
+        void Promise.resolve(
+          supabase
+            .from('weather_forecasts')
+            .upsert(
+              hourly.map((h) => ({
+                location: 'HCMC',
+                forecast_time: new Date(h.time + 'Z').toISOString(),
+                precipitation_probability: h.precipitation_probability,
+                rain_mm: h.rain_mm,
+                source: 'open_meteo',
+                fetched_at: now.toISOString(),
+              })),
+              { onConflict: 'location,forecast_time' },
+            ),
+        ).catch((e) => console.warn('[weather] upsert failed:', e))
       }
 
       const maxProb = hourly.reduce((m, h) => Math.max(m, h.precipitation_probability), 0)
