@@ -15,6 +15,7 @@ import createInternalRoutes from './_routes/internal.js'
 import createLocationRoutes from './_routes/locations.js'
 import createReportRoutes from './_routes/reports.js'
 import createRouteCheckRoutes from './_routes/routeCheck.js'
+import createRouteHistoryRoutes from './_routes/routeHistory.js'
 import createSavedRoutesRoutes from './_routes/savedRoutes.js'
 import createVoiceRoutes from './_routes/voice.js'
 import createWeatherRoutes from './_routes/weather.js'
@@ -42,6 +43,7 @@ app.use('/api/floods', createFloodRoutes(floodStore))
 app.use('/api/locations', createLocationRoutes())
 app.use('/api/report-flood', createReportRoutes(floodStore))
 app.use('/api/route-check', createRouteCheckRoutes(floodStore))
+app.use('/api/route-history', createRouteHistoryRoutes())
 app.use('/api/internal', createInternalRoutes(floodStore))
 app.use('/api/saved-routes', createSavedRoutesRoutes())
 app.use('/api/voice', createVoiceRoutes())

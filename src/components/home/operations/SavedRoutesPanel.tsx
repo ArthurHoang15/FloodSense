@@ -35,7 +35,7 @@ export default function SavedRoutesPanel({ impactedRouteIds }: Props) {
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold text-on-surface">{route.name}</div>
                     <div className="mt-1 truncate text-xs text-on-surface-variant">
-                      {route.origin.address ?? 'Origin'} → {route.destination.address ?? 'Destination'}
+                      {route.origin.address ?? 'Origin'} to {route.destination.address ?? 'Destination'}
                     </div>
                     {impacted ? <div className="mt-2 text-xs text-error">Active flood overlap detected</div> : null}
                   </div>

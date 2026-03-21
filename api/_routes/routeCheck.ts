@@ -1,17 +1,22 @@
 import express, { type Request, type Response } from 'express'
 import type { FloodStore } from '../_lib/mockData.js'
 import { getFloods } from '../_lib/mockData.js'
-import type { FloodEvent, LatLng, RouteCheckRequest, RouteCheckResponse } from '../../shared/types.js'
+import type { FloodEvent, LatLng, RouteCheckHistoryEntry, RouteCheckRequest, RouteCheckResponse, RouteForecastHistoryContext } from '../../shared/types.js'
 import { bboxFromCoords, haversineMeters, interpolateLine, computeBearing } from '../_lib/geo.js'
 import { getDrivingRoute, getRouteAlternatives } from '../_lib/directions.js'
 import { geocode, mockGeocode } from '../_lib/geocode.js'
 import supabase, { toFloodEvent } from '../_lib/supabase.js'
 import { fetchEnrichedWeather } from '../_lib/weatherEnrich.js'
+import { generateRouteForecast } from '../_lib/routeForecast.js'
 
 const RADIUS_METERS = 200
 
 function isLiveMode() {
   return process.env.DATA_MODE === 'live'
+}
+
+function getAnonId(req: Request): string | null {
+  return (req.headers['x-anonymous-id'] as string) || null
 }
 
 function asLatLng(input: unknown): LatLng | null {
@@ -37,9 +42,15 @@ async function resolveLocation(input: RouteCheckRequest['origin']): Promise<LatL
 }
 
 function pickSeverityWord(count: number): string {
-  if (count >= 3) return 'high risk'
-  if (count >= 1) return 'some risk'
-  return 'low risk'
+  if (count >= 3) return 'high'
+  if (count >= 1) return 'medium'
+  return 'low'
+}
+
+function formatLocationLabel(input: RouteCheckRequest['origin']): string {
+  if (typeof input === 'string') return input
+  if (typeof input.address === 'string' && input.address.trim()) return input.address
+  return `${input.lat}, ${input.lng}`
 }
 
 async function buildRouteCoords(origin: LatLng, destination: LatLng): Promise<LatLng[]> {
@@ -51,21 +62,54 @@ async function buildRouteCoords(origin: LatLng, destination: LatLng): Promise<La
   return interpolateLine(origin, destination, 40)
 }
 
+function buildHistoryContext(
+  history: RouteCheckHistoryEntry[],
+  originLabel: string,
+  destinationLabel: string,
+): RouteForecastHistoryContext {
+  const normalizedOrigin = originLabel.trim().toLowerCase()
+  const normalizedDestination = destinationLabel.trim().toLowerCase()
+  const sameCorridor = history.filter(
+    (entry) =>
+      entry.origin_label.trim().toLowerCase() === normalizedOrigin &&
+      entry.destination_label.trim().toLowerCase() === normalizedDestination,
+  )
+  const sameCorridorHighRiskCount = sameCorridor.filter((entry) => entry.risk_level === 'high').length
+  const sameCorridorAlternativeCount = sameCorridor.filter((entry) => entry.has_alternative_route).length
+
+  return {
+    recentChecks: history.length,
+    sameCorridorChecks: sameCorridor.length,
+    sameCorridorHighRiskCount,
+    sameCorridorAlternativeRate: sameCorridor.length > 0 ? sameCorridorAlternativeCount / sameCorridor.length : 0,
+    recentRiskLevels: history.slice(0, 5).map((entry) => entry.risk_level ?? 'unknown'),
+  }
+}
+
 function countFloodIntersections(coords: LatLng[], floods: FloodEvent[]): FloodEvent[] {
-  return floods.filter((f) => {
-    for (const c of coords) {
-      if (haversineMeters(f.coordinates, c) <= RADIUS_METERS) return true
+  return floods.filter((flood) => {
+    for (const coord of coords) {
+      if (haversineMeters(flood.coordinates, coord) <= RADIUS_METERS) return true
     }
     return false
   })
 }
 
+function rankRouteRisk(confirmedHits: FloodEvent[], forecastHits: FloodEvent[]) {
+  return {
+    confirmedHits,
+    forecastHits,
+    floodZones: [...confirmedHits, ...forecastHits],
+    score: confirmedHits.length * 100 + forecastHits.length * 10,
+  }
+}
+
 function computeFloodCentroid(floods: FloodEvent[]): LatLng {
   let totalLat = 0
   let totalLng = 0
-  for (const f of floods) {
-    totalLat += f.coordinates.lat
-    totalLng += f.coordinates.lng
+  for (const flood of floods) {
+    totalLat += flood.coordinates.lat
+    totalLng += flood.coordinates.lng
   }
   return { lat: totalLat / floods.length, lng: totalLng / floods.length }
 }
@@ -88,27 +132,27 @@ function offsetPoint(point: LatLng, bearingDeg: number, distanceMeters: number):
 async function findSafeAlternative(
   origin: LatLng,
   destination: LatLng,
-  floods: FloodEvent[],
+  confirmedFloods: FloodEvent[],
+  forecastFloods: FloodEvent[],
+  currentRisk: ReturnType<typeof rankRouteRisk>,
 ): Promise<{ coords: LatLng[]; floodZones: FloodEvent[] } | null> {
-  // Strategy A: request alternative routes from Mapbox/OSRM
   const alternatives = await getRouteAlternatives(origin, destination)
   if (alternatives && alternatives.length > 1) {
     let bestRoute: LatLng[] | null = null
-    let bestFloods: FloodEvent[] = floods // worst case = original
+    let bestRisk = currentRisk
     for (const alt of alternatives) {
-      const hits = countFloodIntersections(alt, floods)
-      if (hits.length < bestFloods.length) {
-        bestFloods = hits
+      const risk = rankRouteRisk(countFloodIntersections(alt, confirmedFloods), countFloodIntersections(alt, forecastFloods))
+      if (risk.score < bestRisk.score || (risk.score === bestRisk.score && risk.floodZones.length < bestRisk.floodZones.length)) {
+        bestRisk = risk
         bestRoute = alt
       }
     }
-    if (bestRoute && bestFloods.length < floods.length) {
-      return { coords: bestRoute, floodZones: bestFloods }
+    if (bestRoute && (bestRisk.score < currentRisk.score || bestRisk.floodZones.length < currentRisk.floodZones.length)) {
+      return { coords: bestRoute, floodZones: bestRisk.floodZones }
     }
   }
 
-  // Strategy B: waypoint avoidance — offset perpendicular to route bearing at flood centroid
-  const centroid = computeFloodCentroid(floods)
+  const centroid = computeFloodCentroid(currentRisk.floodZones)
   const bearing = computeBearing(origin, destination)
   const perpendicular = (bearing + 90) % 360
 
@@ -117,9 +161,9 @@ async function findSafeAlternative(
     const waypointRoutes = await getRouteAlternatives(origin, destination, [waypoint])
     if (waypointRoutes && waypointRoutes.length > 0) {
       const route = waypointRoutes[0]
-      const hits = countFloodIntersections(route, floods)
-      if (hits.length < floods.length) {
-        return { coords: route, floodZones: hits }
+      const risk = rankRouteRisk(countFloodIntersections(route, confirmedFloods), countFloodIntersections(route, forecastFloods))
+      if (risk.score < currentRisk.score || (risk.score === currentRisk.score && risk.floodZones.length < currentRisk.floodZones.length)) {
+        return { coords: route, floodZones: risk.floodZones }
       }
     }
   }
@@ -134,19 +178,22 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
     const body = req.body as RouteCheckRequest
     const origin = await resolveLocation(body?.origin)
     const destination = await resolveLocation(body?.destination)
+    const anonId = getAnonId(req)
+    const originLabel = body?.origin ? formatLocationLabel(body.origin) : 'Origin'
+    const destinationLabel = body?.destination ? formatLocationLabel(body.destination) : 'Destination'
 
     if (!origin || !destination) {
       res.status(400).json({ success: false, error: 'Invalid origin/destination' })
       return
     }
 
-    const coords = await buildRouteCoords(origin, destination)
-    const bounding_box = bboxFromCoords(coords)
+      const coords = await buildRouteCoords(origin, destination)
+      const bounding_box = bboxFromCoords(coords)
+      let historyContext: RouteForecastHistoryContext | null = null
 
     try {
       let floods
       if (isLiveMode() && supabase) {
-        // Use Supabase stored function for bbox query
         const { data, error } = await supabase.rpc('get_floods_in_bbox', {
           p_north: bounding_box.north,
           p_south: bounding_box.south,
@@ -155,21 +202,70 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
         })
         if (error) throw error
         floods = (data ?? []).map((row: Record<string, unknown>) => toFloodEvent(row))
+        if (anonId) {
+          try {
+            const { data: historyRows, error: historyError } = await supabase
+              .from('route_check_history')
+              .select('id, checked_at, origin_label, destination_label, risk_level, confirmed_flood_count, forecast_flood_count, has_alternative_route, result_json')
+              .eq('anonymous_id', anonId)
+              .order('checked_at', { ascending: false })
+              .limit(10)
+
+            if (!historyError && historyRows) {
+              historyContext = buildHistoryContext(
+                historyRows.map((row) => ({
+                  id: String(row.id),
+                  checked_at: String(row.checked_at),
+                  origin_label: String(row.origin_label ?? ''),
+                  destination_label: String(row.destination_label ?? ''),
+                  risk_level: (row.risk_level as RouteCheckHistoryEntry['risk_level']) ?? 'unknown',
+                  confirmed_flood_count: Number(row.confirmed_flood_count ?? 0),
+                  forecast_flood_count: Number(row.forecast_flood_count ?? 0),
+                  has_alternative_route: Boolean(row.has_alternative_route),
+                  result: (row.result_json as RouteCheckResponse) ?? {
+                    route: { coords: [], bounding_box: { north: 0, south: 0, east: 0, west: 0 } },
+                    floodZones: [],
+                    warnings: [],
+                    alertText: null,
+                    forecast: null,
+                  },
+                })),
+                originLabel,
+                destinationLabel,
+              )
+            }
+          } catch {
+            // ignore history context failures
+          }
+        }
       } else {
         floods = getFloods(store)
       }
 
-      // ── Separate forecast floods from confirmed floods ─────────────────
-      const confirmedFloods = floods.filter((f) => !f.is_forecast)
-      const forecastFloods = floods.filter((f) => f.is_forecast)
+      const confirmedFloods = floods.filter((flood) => !flood.is_forecast)
+      const forecastFloods = floods.filter((flood) => flood.is_forecast)
       const affected = countFloodIntersections(coords, confirmedFloods)
+      const forecastAffected = countFloodIntersections(coords, forecastFloods)
+      const currentRisk = rankRouteRisk(affected, forecastAffected)
+      let precipitationSum6h: number | null = null
+
+      if (forecastAffected.length > 0) {
+        try {
+          const enriched = await fetchEnrichedWeather()
+          if (enriched) {
+            precipitationSum6h = enriched.hourly.reduce((sum, hour) => sum + hour.rain_mm, 0)
+          }
+        } catch {
+          // non-fatal
+        }
+      }
 
       const warnings: string[] = []
       if (affected.length > 0) {
         warnings.push(`Route intersects ${affected.length} flood zone(s).`)
         const top = affected
           .slice(0, 3)
-          .map((z) => `${z.street_name} (${z.district})`)
+          .map((zone) => `${zone.street_name} (${zone.district})`)
           .join(', ')
         warnings.push(`Hotspots: ${top}`)
       } else {
@@ -178,50 +274,55 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
 
       const alertText =
         affected.length > 0
-          ? `Cảnh báo — tuyến đường của bạn đi qua ${affected.length} điểm ngập. ` +
-            `${affected[0]?.street_name ?? ''} bị ảnh hưởng. Mức độ rủi ro: ${pickSeverityWord(affected.length)}.`
+          ? `Warning: your route crosses ${affected.length} flooded segment(s). ${affected[0]?.street_name ?? 'The first hotspot'} is affected. Risk level is ${pickSeverityWord(affected.length)}.`
           : null
 
-      // Find a safer alternative if the route hits flood zones
       let alternativeRoute: RouteCheckResponse['alternativeRoute'] = null
-      if (affected.length > 0) {
-        const alt = await findSafeAlternative(origin, destination, affected)
+      if (currentRisk.floodZones.length > 0) {
+        const alt = await findSafeAlternative(origin, destination, confirmedFloods, forecastFloods, currentRisk)
         if (alt) {
           alternativeRoute = {
             coords: alt.coords,
             bounding_box: bboxFromCoords(alt.coords),
             floodZones: alt.floodZones,
           }
-          warnings.push(`Safe alternative route available — avoids ${affected.length - alt.floodZones.length} flood zone(s).`)
+          warnings.push(`Safe alternative route available - avoids ${currentRisk.floodZones.length - alt.floodZones.length} flood risk point(s).`)
         }
       }
 
-      // ── Forecast warnings ──────────────────────────────────────────────
-      const forecastAffected = countFloodIntersections(coords, forecastFloods)
       if (forecastAffected.length > 0) {
-        let precipitation_sum_6h: number | null = null
-        try {
-          const enriched = await fetchEnrichedWeather()
-          if (enriched) {
-            precipitation_sum_6h = enriched.hourly.reduce((sum, h) => sum + h.rain_mm, 0)
-          }
-        } catch {
-          // non-fatal
-        }
-
-        for (const f of forecastAffected) {
-          const hoursAway = f.forecast_valid_until
-            ? Math.max(1, Math.round((new Date(f.forecast_valid_until).getTime() - Date.now()) / 3_600_000))
+        for (const flood of forecastAffected) {
+          const hoursAway = flood.forecast_valid_until
+            ? Math.max(1, Math.round((new Date(flood.forecast_valid_until).getTime() - Date.now()) / 3_600_000))
             : 1
           const warning =
-            precipitation_sum_6h != null
-              ? `Khu vực ${f.district} có nguy cơ ngập trong ${hoursAway} giờ tới — dự báo mưa ${Math.round(precipitation_sum_6h)}mm`
-              : `Khu vực ${f.district} có nguy cơ ngập trong ${hoursAway} giờ tới theo dự báo thời tiết`
+            precipitationSum6h != null
+              ? `Expected flood risk in ${flood.district} within the next ${hoursAway} hour(s) - forecast rainfall ${Math.round(precipitationSum6h)} mm.`
+              : `Expected flood risk in ${flood.district} within the next ${hoursAway} hour(s) based on weather forecast conditions.`
           warnings.push(warning)
         }
       }
 
-      const payload: RouteCheckResponse = { route: { coords, bounding_box }, alternativeRoute, floodZones: affected, warnings, alertText }
+      const forecast = await generateRouteForecast({
+        originLabel,
+        destinationLabel,
+        confirmedFloods: affected,
+        forecastFloods: forecastAffected,
+        rainfallNext6hMm: precipitationSum6h,
+        alternativeFloodReduction: currentRisk.floodZones.length - (alternativeRoute?.floodZones.length ?? currentRisk.floodZones.length),
+        recentHistory: historyContext,
+      })
+
+      warnings.unshift(`Forecast: ${forecast.summary}`)
+
+      const payload: RouteCheckResponse = {
+        route: { coords, bounding_box },
+        alternativeRoute,
+        floodZones: affected,
+        warnings,
+        alertText,
+        forecast,
+      }
       res.status(200).json({ success: true, ...payload })
     } catch (err) {
       console.error('[route-check] error:', err)

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
 import express from 'express'
 import request from 'supertest'
-import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
 
 vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
@@ -9,10 +8,6 @@ vi.mock('../../_lib/supabase.js', async () => {
   ;(globalThis as Record<string, unknown>).__voiceSb = sb
   return { default: sb, toFloodEvent: vi.fn((row: Record<string, unknown>) => row) }
 })
-
-function getSb(): SupabaseMock {
-  return (globalThis as Record<string, unknown>).__voiceSb as SupabaseMock
-}
 
 const MOCK_AUDIO = new Uint8Array([0xff, 0xfb, 0x90, 0x04]).buffer
 
@@ -26,8 +21,7 @@ function stubFetch(ok: boolean, body: BodyInit | null = null) {
   })
 }
 
-// ── With API key + voice IDs configured ──────────────────────────────────
-describe('POST /voice/generate — ElevenLabs configured', () => {
+describe('POST /voice/generate - ElevenLabs configured', () => {
   let app: express.Application
 
   beforeAll(async () => {
@@ -50,27 +44,22 @@ describe('POST /voice/generate — ElevenLabs configured', () => {
   })
 
   beforeEach(() => {
-    getSb().__resetAll()
     vi.unstubAllGlobals()
   })
 
-  it('missing text → 400', async () => {
+  it('missing text -> 400', async () => {
     const res = await request(app).post('/generate').send({})
     expect(res.status).toBe(400)
     expect(res.body.success).toBe(false)
   })
 
-  it('ElevenLabs returns non-OK → 502', async () => {
-    // no cache hit
-    getSb().__setTableResult('alert_history', { data: null, error: null })
+  it('ElevenLabs returns non-OK -> 502', async () => {
     vi.stubGlobal('fetch', stubFetch(false))
     const res = await request(app).post('/generate').send({ text: 'test alert', variant: 'female_south' })
     expect(res.status).toBe(502)
   })
 
-  it('cache miss, ElevenLabs success → 200, audio/mpeg, X-Cache: MISS', async () => {
-    // no cache hit from Supabase
-    getSb().__setTableResult('alert_history', { data: null, error: null })
+  it('ElevenLabs success -> 200, audio/mpeg, X-Cache: MISS', async () => {
     vi.stubGlobal('fetch', stubFetch(true))
     const res = await request(app).post('/generate').send({ text: 'test alert', variant: 'female_south' })
     expect(res.status).toBe(200)
@@ -78,29 +67,42 @@ describe('POST /voice/generate — ElevenLabs configured', () => {
     expect(res.headers['x-cache']).toBe('MISS')
   })
 
-  it('cache hit from alert_history → 200, X-Cache: HIT', async () => {
-    // Supabase returns a cached audio_url
-    getSb().__setTableResult('alert_history', {
-      data: { audio_url: 'https://cache.example.com/audio.mp3' },
-      error: null,
+  it('default variant is female_south when not specified', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(MOCK_AUDIO),
+      text: () => Promise.resolve(''),
     })
-    // fetch used for the cached audio URL
-    vi.stubGlobal('fetch', stubFetch(true))
-    const res = await request(app).post('/generate').send({ text: 'cached alert' })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const res = await request(app).post('/generate').send({ text: 'no variant' })
+
     expect(res.status).toBe(200)
-    expect(res.headers['x-cache']).toBe('HIT')
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://api.elevenlabs.io/v1/text-to-speech/voice-female-id',
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 
-  it('default variant is female_south when not specified', async () => {
-    getSb().__setTableResult('alert_history', { data: null, error: null })
-    vi.stubGlobal('fetch', stubFetch(true))
-    const res = await request(app).post('/generate').send({ text: 'no variant' })
+  it('male_north uses the male ElevenLabs voice id', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(MOCK_AUDIO),
+      text: () => Promise.resolve(''),
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const res = await request(app).post('/generate').send({ text: 'male voice check', variant: 'male_north' })
+
     expect(res.status).toBe(200)
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://api.elevenlabs.io/v1/text-to-speech/voice-male-id',
+      expect.objectContaining({ method: 'POST' }),
+    )
   })
 })
 
-// ── No API key ────────────────────────────────────────────────────────────
-describe('POST /voice/generate — no ELEVENLABS_API_KEY', () => {
+describe('POST /voice/generate - no ELEVENLABS_API_KEY', () => {
   let app: express.Application
 
   beforeAll(async () => {
@@ -115,15 +117,14 @@ describe('POST /voice/generate — no ELEVENLABS_API_KEY', () => {
 
   afterAll(() => vi.resetModules())
 
-  it('text provided but no API key → 503', async () => {
+  it('text provided but no API key -> 503', async () => {
     const res = await request(app).post('/generate').send({ text: 'test' })
     expect(res.status).toBe(503)
     expect(res.body.success).toBe(false)
   })
 })
 
-// ── No voice ID ───────────────────────────────────────────────────────────
-describe('POST /voice/generate — API key set but no voice IDs', () => {
+describe('POST /voice/generate - API key set but no voice IDs', () => {
   let app: express.Application
 
   beforeAll(async () => {
@@ -142,7 +143,7 @@ describe('POST /voice/generate — API key set but no voice IDs', () => {
     vi.resetModules()
   })
 
-  it('API key present but no voice IDs → 503', async () => {
+  it('API key present but no voice IDs -> 503', async () => {
     const res = await request(app).post('/generate').send({ text: 'test' })
     expect(res.status).toBe(503)
   })

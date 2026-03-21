@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 import { buildFloodNarrative, formatDepth } from '@/utils/floodPresentation'
@@ -8,6 +9,20 @@ type Props = {
 }
 
 export default function CriticalAlertBanner({ flood }: Props) {
+  const [dismissedFloodId, setDismissedFloodId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!flood) {
+      setDismissedFloodId(null)
+      return
+    }
+
+    if (dismissedFloodId && dismissedFloodId !== flood.id) {
+      setDismissedFloodId(null)
+    }
+  }, [dismissedFloodId, flood])
+
+  if (flood && dismissedFloodId === flood.id) return null
   if (!flood) return null
 
   return (
@@ -21,10 +36,15 @@ export default function CriticalAlertBanner({ flood }: Props) {
             <div className="font-headline text-xl font-bold tracking-[-0.05em] text-on-error-container">
               {flood.street_name} is heavily flooded
             </div>
-            <div className="mt-1 text-sm text-on-error-container/80">{flood.district} • Estimated depth {formatDepth(flood.depth_cm)}</div>
+            <div className="mt-1 text-sm text-on-error-container/80">{flood.district} | Estimated depth {formatDepth(flood.depth_cm)}</div>
             <div className="mt-2 text-xs text-on-error-container/70">{buildFloodNarrative(flood)}</div>
           </div>
-          <button type="button" className="fs-icon-button h-10 w-10 flex-none border-error/15 bg-surface-container-highest/20 text-on-error-container">
+          <button
+            type="button"
+            aria-label="Dismiss critical alert"
+            onClick={() => setDismissedFloodId(flood.id)}
+            className="fs-icon-button h-10 w-10 flex-none border-error/15 bg-surface-container-highest/20 text-on-error-container"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -63,7 +63,6 @@ function buildWeatherAreaLabel(floods: FloodEvent[]) {
 function buildFeedItems(floods: FloodEvent[], weatherAlert: WeatherAlert | null): FeedItem[] {
   const items: FeedItem[] = []
 
-  // Confirmed floods (max 2)
   const confirmedFloods = floods.filter((f) => !f.is_forecast)
   const forecastFloods = floods.filter((f) => f.is_forecast)
 
@@ -72,33 +71,31 @@ function buildFeedItems(floods: FloodEvent[], weatherAlert: WeatherAlert | null)
     return (sev[b.severity] ?? 0) - (sev[a.severity] ?? 0)
   })
 
-  for (const f of prioritized.slice(0, 2)) {
+  for (const flood of prioritized.slice(0, 2)) {
     items.push({
-      id: f.id,
-      time: formatTimestamp(f.last_confirmed_at),
-      tone: severityHeadline(f.severity),
-      headline: `${f.street_name} — ${f.district}`,
-      body: buildFloodNarrative(f),
-      severity: f.severity,
+      id: flood.id,
+      time: formatTimestamp(flood.last_confirmed_at),
+      tone: severityHeadline(flood.severity),
+      headline: `${flood.street_name} - ${flood.district}`,
+      body: buildFloodNarrative(flood),
+      severity: flood.severity,
       kind: 'flood',
     })
   }
 
-  // Forecast flood item (max 1 — highest risk district)
   if (forecastFloods.length > 0) {
     const top = forecastFloods[0]
     items.push({
       id: `forecast-${top.id}`,
       time: formatTimestamp(top.forecast_valid_until ?? top.expires_at),
       tone: 'Forecast',
-      headline: `Dự báo — ${top.district}`,
-      body: `Nguy cơ ngập · Mức độ dự báo: ${top.severity}`,
+      headline: `Forecast - ${top.district}`,
+      body: `Expected flood risk with forecast severity ${top.severity}.`,
       severity: top.severity,
       kind: 'forecast',
     })
   }
 
-  // Weather forecast alert
   if (weatherAlert) {
     const areaLabel = buildWeatherAreaLabel(confirmedFloods)
     items.push({

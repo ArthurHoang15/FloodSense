@@ -63,6 +63,29 @@ export interface RouteCheckRequest {
   destination: LatLng & { address?: string } | string
 }
 
+export interface RouteRiskForecast {
+  source: 'openai' | 'rule-based'
+  riskLevel: 'low' | 'medium' | 'high'
+  confidence: Confidence
+  summary: string
+  peakWindow: string
+  reasons: string[]
+  dataPoints: {
+    confirmedFloodsOnRoute: number
+    forecastFloodsOnRoute: number
+    rainfallNext6hMm: number | null
+    alternativeFloodReduction: number
+  }
+}
+
+export interface RouteForecastHistoryContext {
+  recentChecks: number
+  sameCorridorChecks: number
+  sameCorridorHighRiskCount: number
+  sameCorridorAlternativeRate: number
+  recentRiskLevels: Array<'low' | 'medium' | 'high' | 'unknown'>
+}
+
 export interface RouteCheckResponse {
   route: {
     coords: LatLng[]
@@ -76,6 +99,19 @@ export interface RouteCheckResponse {
   floodZones: FloodEvent[]
   warnings: string[]
   alertText: string | null
+  forecast: RouteRiskForecast | null
+}
+
+export interface RouteCheckHistoryEntry {
+  id: string
+  checked_at: string
+  origin_label: string
+  destination_label: string
+  risk_level: RouteRiskForecast['riskLevel'] | 'unknown'
+  confirmed_flood_count: number
+  forecast_flood_count: number
+  has_alternative_route: boolean
+  result: RouteCheckResponse
 }
 
 export type ReportStatus = 'pending' | 'confirmed' | 'rejected'

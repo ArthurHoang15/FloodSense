@@ -128,10 +128,15 @@ function toHistoryBars(floods: FloodEvent[]): HistoryBar[] {
   const byDay = new Map(dayBuckets.map((bucket) => [bucket.key, bucket]))
 
   for (const flood of floods) {
-    const key = new Date(flood.last_confirmed_at).toISOString().slice(0, 10)
-    const bucket = byDay.get(key)
-    if (bucket) {
-      bucket.count += 1
+    const start = new Date(flood.first_detected_at)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(flood.last_confirmed_at)
+    end.setHours(0, 0, 0, 0)
+
+    for (const bucket of dayBuckets) {
+      if (bucket.date >= start && bucket.date <= end) {
+        bucket.count += 1
+      }
     }
   }
 
@@ -147,7 +152,23 @@ function toHistoryBars(floods: FloodEvent[]): HistoryBar[] {
   }))
 }
 
-function buildWeatherMetrics(hourly: WeatherHourly[]) {
+function buildWeatherMetrics(hourly: WeatherHourly[], floods: FloodEvent[]) {
+  if (hourly.length === 0) {
+    const criticalCount = floods.filter((flood) => flood.severity === 'heavy').length
+    return {
+      highestProbability: 0,
+      peakRain: 0,
+      primaryMetric: {
+        label: 'Active floods',
+        value: String(floods.length),
+      },
+      secondaryMetric: {
+        label: 'Critical zones',
+        value: String(criticalCount),
+      },
+    }
+  }
+
   const highestProbability = hourly.reduce((current, item) => Math.max(current, item.precipitation_probability), 0)
   const peakRain = hourly.reduce((current, item) => Math.max(current, item.rain_mm), 0)
 
@@ -284,12 +305,19 @@ function buildHistorySummary(floods: FloodEvent[]) {
 
   const counts = new Map<string, number>()
   for (const flood of floods) {
-    const day = new Date(flood.last_confirmed_at).toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
-    counts.set(day, (counts.get(day) ?? 0) + 1)
+    const start = new Date(flood.first_detected_at)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(flood.last_confirmed_at)
+    end.setHours(0, 0, 0, 0)
+
+    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+      const day = cursor.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
+      counts.set(day, (counts.get(day) ?? 0) + 1)
+    }
   }
 
   const [peakDay, peakCount] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
-  return `${floods.length} active events remain visible. The busiest confirmation window landed on ${peakDay} with ${peakCount} tracked updates.`
+  return `${floods.length} active events remain visible. The busiest seven-day carry-over landed on ${peakDay} with ${peakCount} concurrent flood signals.`
 }
 
 export function useIntelligenceController() {
@@ -321,7 +349,7 @@ export function useIntelligenceController() {
   const hotspots = useMemo(() => toHotspots(floods), [floods])
   const savedRouteInsights = useMemo(() => toSavedRouteInsights(routes, impactedRouteIds), [impactedRouteIds, routes])
   const historyBars = useMemo(() => toHistoryBars(floods), [floods])
-  const weatherMetrics = useMemo(() => buildWeatherMetrics(weatherHourly), [weatherHourly])
+  const weatherMetrics = useMemo(() => buildWeatherMetrics(weatherHourly, floods), [floods, weatherHourly])
   const weatherCopy = useMemo(() => buildWeatherCopy(weatherHourly, floods, weatherAlert), [floods, weatherAlert, weatherHourly])
   const crowdsourceInsight = useMemo(
     () => buildCrowdsourceInsight(floods, routes, impactedRouteIds, weatherAlert),

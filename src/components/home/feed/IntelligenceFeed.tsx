@@ -26,7 +26,7 @@ export default function IntelligenceFeed({ items }: Props) {
   }
 
   return (
-    <div className="absolute bottom-6 left-4 z-30 hidden w-[420px] max-w-[calc(100%-2rem)] lg:block xl:left-6 xl:bottom-8">
+    <div className="absolute bottom-6 left-4 z-30 hidden w-[420px] max-w-[calc(100%-2rem)] lg:block xl:bottom-8 xl:left-6">
       <SurfaceCard tone="glass" className="p-6">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -55,7 +55,7 @@ export default function IntelligenceFeed({ items }: Props) {
               <div>
                 <div className="flex items-center gap-2">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
-                    {item.time} • {item.tone}
+                    {item.time} | {item.tone}
                   </div>
                   {item.kind === 'forecast' ? (
                     <span className="inline-flex items-center rounded-full border border-yellow-500/35 bg-yellow-500/12 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-yellow-300">

@@ -6,6 +6,7 @@ import SavedRoutesPanel from '@/components/home/operations/SavedRoutesPanel'
 import NavigationRail from '@/components/home/sidebar/NavigationRail'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 import RouteFloodZonesCard from '@/components/route-results/RouteFloodZonesCard'
+import RouteCheckHistoryCard from '@/components/route-results/RouteCheckHistoryCard'
 import RouteResultOverviewCard from '@/components/route-results/RouteResultOverviewCard'
 import RouteWarningsCard from '@/components/route-results/RouteWarningsCard'
 import type { RouteResultsController } from '@/hooks/useRouteResultsController'
@@ -21,8 +22,12 @@ export default function RouteResultsDashboard({ controller }: Props) {
     heavyCount,
     routeData,
     routeCoords,
+    altRouteCoords,
     setRouteCoords,
+    safeRouteSelected,
+    activateSafeRoute,
     impactedRouteIds,
+    history,
     telemetry,
     resultSummary,
   } = controller
@@ -38,12 +43,12 @@ export default function RouteResultsDashboard({ controller }: Props) {
 
             <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.25fr)_400px] 2xl:items-start">
               <div className="min-w-0 space-y-6">
-                <RoutePlannerPanel onRouteReady={setRouteCoords} mode="page" />
+                <RoutePlannerPanel onRouteReady={setRouteCoords} onUseSafeRoute={activateSafeRoute} safeRouteSelected={safeRouteSelected} mode="page" />
 
-                <MapStage floods={floods} routeCoords={routeCoords} headlineFlood={headlineFlood} heavyCount={heavyCount} />
+                <MapStage floods={floods} routeCoords={routeCoords} altRouteCoords={altRouteCoords} headlineFlood={headlineFlood} heavyCount={heavyCount} />
 
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-stretch">
-                  <RouteWarningsCard warnings={routeData?.warnings ?? []} />
+                  <RouteWarningsCard warnings={routeData?.warnings ?? []} forecast={routeData?.forecast ?? null} />
                   <RouteFloodZonesCard zones={routeData?.floodZones ?? []} />
                 </div>
               </div>
@@ -72,6 +77,7 @@ export default function RouteResultsDashboard({ controller }: Props) {
                 </SurfaceCard>
 
                 <SavedRoutesPanel impactedRouteIds={impactedRouteIds} />
+                <RouteCheckHistoryCard items={history} />
               </div>
             </div>
           </div>

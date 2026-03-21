@@ -3,7 +3,7 @@ import type { FloodEvent } from '../../shared/types'
 import { apiGet, apiPost, apiPostInternal } from '@/utils/api'
 
 type FloodsApiResponse = { success: boolean; floods: FloodEvent[]; now: string }
-type SimulateResponse = { success: boolean; enabled: boolean; floods: FloodEvent[] }
+type SimulateResponse = { success: boolean; enabled: boolean; floods?: FloodEvent[]; count?: number }
 
 type FloodState = {
   baseFloods: FloodEvent[]
@@ -35,11 +35,16 @@ export const useFloodStore = create<FloodState>((set, get) => ({
       enable: true,
     })
     if (!data.success) return
+    const queuedFloods = Array.isArray(data.floods) ? data.floods : []
+    const hasAnimatedQueue = queuedFloods.length > 0
     set({
-      simulating: true,
-      simulationQueue: data.floods,
+      simulating: hasAnimatedQueue,
+      simulationQueue: queuedFloods,
       simulatedVisible: [],
     })
+    if (!hasAnimatedQueue) {
+      await get().fetchFloods()
+    }
   },
   resetSimulated: async () => {
     await apiPostInternal('/api/internal/reset-simulated', {})
@@ -48,6 +53,10 @@ export const useFloodStore = create<FloodState>((set, get) => ({
   },
   stepSimulation: () => {
     const { simulationQueue, simulatedVisible } = get()
+    if (!Array.isArray(simulationQueue)) {
+      set({ simulating: false, simulationQueue: [], simulatedVisible: [] })
+      return
+    }
     if (simulationQueue.length === 0) {
       set({ simulating: false })
       return

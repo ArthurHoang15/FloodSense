@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import type { AddressSuggestion, FloodEvent, LatLng } from '../../shared/types'
 
@@ -53,6 +53,7 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
   const popupRef = useRef<mapboxgl.Popup | null>(null)
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null)
   const onSelectFloodRef = useRef<Props['onSelectFlood']>(onSelectFlood)
+  const [mapReady, setMapReady] = useState(false)
 
   const floodsGeo = useMemo(() => toFeatureCollection(floods), [floods])
   const hasFloodIntersection = !!altRouteCoords
@@ -66,6 +67,7 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
   useEffect(() => {
     if (!containerRef.current) return
     if (!token) return
+    setMapReady(false)
     mapboxgl.accessToken = token
     const map = new mapboxgl.Map({
       container: containerRef.current,
@@ -77,6 +79,7 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
     popupRef.current = new mapboxgl.Popup({ closeButton: true, closeOnClick: true })
 
     map.on('load', () => {
+      setMapReady(true)
       map.addSource('flood-points', {
         type: 'geojson',
         data: toFeatureCollection([]) as unknown as GeoJSON.FeatureCollection,
@@ -159,7 +162,10 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
     })
 
     return () => {
+      setMapReady(false)
       popupRef.current?.remove()
+      searchMarkerRef.current?.remove()
+      searchMarkerRef.current = null
       map.remove()
       mapRef.current = null
     }
@@ -167,14 +173,14 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
     const src = map.getSource('flood-points') as mapboxgl.GeoJSONSource | undefined
     if (src) src.setData(floodsGeo as unknown as GeoJSON.FeatureCollection)
-  }, [floodsGeo])
+  }, [floodsGeo, mapReady])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
     const has = !!map.getSource('route-line')
     if (!routeGeo) {
       if (has) {
@@ -208,11 +214,11 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
       map.setPaintProperty('route-line-layer', 'line-color', lineColor)
       map.setPaintProperty('route-line-layer', 'line-dasharray', dashArray ?? [])
     }
-  }, [routeGeo, hasFloodIntersection])
+  }, [routeGeo, hasFloodIntersection, mapReady])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
     const has = !!map.getSource('safe-route-line')
     if (!altRouteGeo) {
       if (has) {
@@ -237,11 +243,11 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
     }
     const src = map.getSource('safe-route-line') as mapboxgl.GeoJSONSource | undefined
     if (src) src.setData(altRouteGeo as unknown as GeoJSON.FeatureCollection)
-  }, [altRouteGeo])
+  }, [altRouteGeo, mapReady])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
 
     if (!focusLocation) {
       searchMarkerRef.current?.remove()
@@ -258,7 +264,7 @@ export default function FloodMap({ floods, routeCoords, altRouteCoords = null, f
       zoom: 14.5,
       essential: true,
     })
-  }, [focusLocation])
+  }, [focusLocation, mapReady])
 
   if (!token) {
     return (
