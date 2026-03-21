@@ -14,7 +14,6 @@ type Props = {
 }
 
 export default function HomeDashboard({ controller }: Props) {
-  const { fetchFloods, startSimulateRain, simulating } = useFloodStore()
   const {
     floods,
     routeCoords,
@@ -33,7 +32,7 @@ export default function HomeDashboard({ controller }: Props) {
   return (
     <div className="fs-shell">
       <div className="mx-auto flex max-w-[1600px] gap-0 xl:gap-2">
-        <NavigationRail telemetry={telemetry} onSimulate={() => startSimulateRain()} onRefresh={() => fetchFloods()} simulating={simulating} activeItem="flood-feed" />
+        <NavigationRail telemetry={telemetry} activeItem="flood-feed" />
 
         <main className="min-w-0 flex-1 px-3 pb-24 pt-4 md:px-6 md:pt-6 xl:pb-10">
           {weatherAlert ? (

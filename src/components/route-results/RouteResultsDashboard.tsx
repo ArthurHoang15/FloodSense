@@ -24,16 +24,13 @@ export default function RouteResultsDashboard({ controller }: Props) {
     setRouteCoords,
     impactedRouteIds,
     telemetry,
-    simulating,
-    refreshFloods,
-    runSimulation,
     resultSummary,
   } = controller
 
   return (
     <div className="fs-shell">
       <div className="mx-auto flex max-w-[1720px] gap-0 xl:gap-2">
-        <NavigationRail telemetry={telemetry} onSimulate={runSimulation} onRefresh={() => refreshFloods()} simulating={simulating} activeItem="route-results" />
+        <NavigationRail telemetry={telemetry} activeItem="route-results" />
 
         <main className="min-w-0 flex-1 px-3 pb-24 pt-4 md:px-6 md:pt-6 xl:pb-10">
           <div className="space-y-6">
