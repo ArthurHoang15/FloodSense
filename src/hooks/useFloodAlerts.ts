@@ -1,17 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { haversineMeters } from '@/utils/geo'
 import { buildAlertBody } from '@/utils/floodPresentation'
+import { floodHitsRoute, getImpactedRouteIds } from '@/utils/routeInsights'
 import type { FloodEvent, SavedRoute } from '../../shared/types'
-
-function floodHitsRoute(flood: FloodEvent, route: SavedRoute) {
-  const floodPoint = { lat: flood.coordinates.lat, lng: flood.coordinates.lng }
-  for (const coordinate of route.route_coords) {
-    if (haversineMeters(floodPoint, coordinate) <= 200) {
-      return true
-    }
-  }
-  return false
-}
 
 async function showAlert(title: string, body: string) {
   if (!('Notification' in window)) return
@@ -38,15 +28,7 @@ export function useFloodAlerts(floods: FloodEvent[], routes: SavedRoute[], notif
   const notifiedRef = useRef<Record<string, true>>({})
 
   const activeRoutes = useMemo(() => routes.filter((route) => route.notify_enabled), [routes])
-  const impactedRouteIds = useMemo(() => {
-    const impacted = new Set<string>()
-    for (const route of activeRoutes) {
-      for (const flood of floods) {
-        if (floodHitsRoute(flood, route)) impacted.add(route.id)
-      }
-    }
-    return [...impacted]
-  }, [activeRoutes, floods])
+  const impactedRouteIds = useMemo(() => getImpactedRouteIds(floods, activeRoutes), [activeRoutes, floods])
 
   useEffect(() => {
     if (!notificationsEnabled || activeRoutes.length === 0 || floods.length === 0) return

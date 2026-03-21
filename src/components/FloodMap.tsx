@@ -71,8 +71,6 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
     mapRef.current = map
     popupRef.current = new mapboxgl.Popup({ closeButton: true, closeOnClick: true })
 
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }))
-
     map.on('load', () => {
       map.addSource('flood-points', {
         type: 'geojson',
