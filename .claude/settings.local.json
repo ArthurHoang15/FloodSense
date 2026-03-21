@@ -5,7 +5,10 @@
       "Bash(grep -r \"VITE_\\\\|import.meta.env\" . --include=*.ts --include=*.tsx --exclude-dir=node_modules)",
       "Bash(bun install:*)",
       "Bash(timeout 8 bun run server:dev)",
-      "Bash(timeout 10 bun run server:dev)"
+      "Bash(timeout 10 bun run server:dev)",
+      "Bash(bun test:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(bun run:*)"
     ]
   }
 }
