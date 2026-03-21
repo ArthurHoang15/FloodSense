@@ -192,11 +192,24 @@ export default function RoutePlannerPanel({ onRouteReady, mode = 'compact', clas
           </div>
         ) : null}
 
-        {data?.warnings?.length ? (
+        {data?.warnings?.filter((w) => !w.includes('nguy cơ ngập')).length ? (
           <div className="grid gap-2 rounded-2xl border border-outline-variant/15 bg-surface-container p-4 text-sm text-on-surface-variant">
-            {data.warnings.map((warning) => (
-              <div key={warning}>{warning}</div>
-            ))}
+            {data.warnings
+              .filter((w) => !w.includes('nguy cơ ngập'))
+              .map((w) => (
+                <div key={w}>⚠️ {w}</div>
+              ))}
+          </div>
+        ) : null}
+
+        {data?.warnings?.filter((w) => w.includes('nguy cơ ngập')).length ? (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="mb-2 text-xs font-semibold text-amber-400">Cảnh báo dự báo</div>
+            {data.warnings
+              .filter((w) => w.includes('nguy cơ ngập'))
+              .map((w) => (
+                <div key={w} className="text-xs text-amber-300/90">🌧 {w}</div>
+              ))}
           </div>
         ) : null}
 

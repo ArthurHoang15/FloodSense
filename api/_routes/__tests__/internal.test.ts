@@ -273,9 +273,8 @@ describe('POST /run-pipeline — forecast enrichment', () => {
     })
     searchFloodNews.mockResolvedValue([])
     extractFloodData.mockResolvedValue([])
-    // pipeline_runs insert
-    getSb().from().insert().select().single.mockResolvedValue({ data: { id: 'run-1' }, error: null })
-    getSb().from().update().eq.mockResolvedValue({ data: null, error: null })
+    // pipeline_runs result via table mock
+    getSb().__setTableResult('pipeline_runs', { data: { id: 'run-1' }, error: null })
   })
 
   it('severity upgraded light→moderate when riskScore ≥ 60', async () => {
@@ -298,7 +297,7 @@ describe('POST /run-pipeline — forecast enrichment', () => {
       score: 65, level: 'high', peakHour: new Date().toISOString(), forecastDistricts: [],
     })
     getSb().rpc.mockResolvedValue({ data: 'flood-id-1', error: null })
-    getSb().from().insert.mockResolvedValue({ data: null, error: null })
+    getSb().__setTableResult('flood_sources', { data: null, error: null })
 
     const res = await request(enrichApp).post('/run-pipeline').set(CORRECT_HEADER)
 

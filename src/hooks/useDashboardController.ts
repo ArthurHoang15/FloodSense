@@ -61,38 +61,60 @@ function buildWeatherAreaLabel(floods: FloodEvent[]) {
 }
 
 function buildFeedItems(floods: FloodEvent[], weatherAlert: WeatherAlert | null): FeedItem[] {
-  const floodItems = floods.slice(0, 3).map((flood) => ({
-    id: flood.id,
-    time: formatTimestamp(flood.last_confirmed_at),
-    tone: severityHeadline(flood.severity),
-    headline: `${flood.street_name} in ${flood.district}`,
-    body: buildFloodNarrative(flood),
-    severity: flood.severity,
-    kind: 'flood' as const,
-  }))
+  const items: FeedItem[] = []
 
-  if (!weatherAlert) {
-    return floodItems
+  // Confirmed floods (max 2)
+  const confirmedFloods = floods.filter((f) => !f.is_forecast)
+  const forecastFloods = floods.filter((f) => f.is_forecast)
+
+  const prioritized = [...confirmedFloods].sort((a, b) => {
+    const sev = { heavy: 3, moderate: 2, light: 1 } as const
+    return (sev[b.severity] ?? 0) - (sev[a.severity] ?? 0)
+  })
+
+  for (const f of prioritized.slice(0, 2)) {
+    items.push({
+      id: f.id,
+      time: formatTimestamp(f.last_confirmed_at),
+      tone: severityHeadline(f.severity),
+      headline: `${f.street_name} — ${f.district}`,
+      body: buildFloodNarrative(f),
+      severity: f.severity,
+      kind: 'flood',
+    })
   }
 
-  const weatherTime = weatherAlert.time
-    ? formatTimestamp(weatherAlert.time)
-    : 'Now'
-  const areaLabel = buildWeatherAreaLabel(floods)
-
-  const forecastItem: FeedItem = {
-    id: 'weather-forecast',
-    time: weatherTime,
-    tone: 'Forecast',
-    headline: `Heavy rain watch for ${areaLabel}`,
-    body: areaLabel === 'HCMC-wide monitoring'
-      ? weatherAlert.message
-      : `${weatherAlert.message} Focus area: ${areaLabel}.`,
-    severity: 'light',
-    kind: 'forecast',
+  // Forecast flood item (max 1 — highest risk district)
+  if (forecastFloods.length > 0) {
+    const top = forecastFloods[0]
+    items.push({
+      id: `forecast-${top.id}`,
+      time: formatTimestamp(top.forecast_valid_until ?? top.expires_at),
+      tone: 'Forecast',
+      headline: `Dự báo — ${top.district}`,
+      body: `Nguy cơ ngập · Mức độ dự báo: ${top.severity}`,
+      severity: top.severity,
+      kind: 'forecast',
+    })
   }
 
-  return [forecastItem, ...floodItems].slice(0, 4)
+  // Weather forecast alert
+  if (weatherAlert) {
+    const areaLabel = buildWeatherAreaLabel(confirmedFloods)
+    items.push({
+      id: 'weather-alert',
+      time: weatherAlert.time ? formatTimestamp(weatherAlert.time) : 'Now',
+      tone: 'Forecast',
+      headline: `Heavy rain watch for ${areaLabel}`,
+      body: areaLabel === 'HCMC-wide monitoring'
+        ? weatherAlert.message
+        : `${weatherAlert.message} Focus area: ${areaLabel}.`,
+      severity: weatherAlert.severity === 'high' ? 'heavy' : weatherAlert.severity === 'medium' ? 'moderate' : 'light',
+      kind: 'forecast',
+    })
+  }
+
+  return items.slice(0, 4)
 }
 
 export function useDashboardController() {
@@ -146,7 +168,7 @@ export function useDashboardController() {
   const headlineFlood = prioritizedFloods[0] ?? null
   const telemetry = prioritizedFloods.slice(0, 3)
   const feedItems = useMemo(() => buildFeedItems(prioritizedFloods, weatherAlert), [prioritizedFloods, weatherAlert])
-  const weatherFocusLabel = useMemo(() => buildWeatherAreaLabel(prioritizedFloods), [prioritizedFloods])
+  const weatherFocusLabel = useMemo(() => buildWeatherAreaLabel(prioritizedFloods.filter((f) => !f.is_forecast)), [prioritizedFloods])
   const stats = useMemo(
     () => ({
       floodCount: floods.length,
