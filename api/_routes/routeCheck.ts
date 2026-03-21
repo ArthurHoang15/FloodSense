@@ -55,7 +55,7 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
 
     try {
       let floods
-      if (IS_LIVE) {
+      if (IS_LIVE && supabase) {
         // Use Supabase stored function for bbox query
         const { data, error } = await supabase.rpc('get_floods_in_bbox', {
           p_north: bounding_box.north,

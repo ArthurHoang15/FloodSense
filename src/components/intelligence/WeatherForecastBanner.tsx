@@ -1,14 +1,19 @@
 import { CloudLightning, Droplets, Wind } from 'lucide-react'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 
+type Metric = {
+  label: string
+  value: string
+}
+
 type Props = {
   title: string
   description: string
-  humidityLabel: string
-  windLabel: string
+  primaryMetric: Metric
+  secondaryMetric: Metric
 }
 
-export default function WeatherForecastBanner({ title, description, humidityLabel, windLabel }: Props) {
+export default function WeatherForecastBanner({ title, description, primaryMetric, secondaryMetric }: Props) {
   return (
     <SurfaceCard className="overflow-hidden border-l-4 border-l-secondary-container p-6 md:p-7">
       <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
@@ -27,8 +32,8 @@ export default function WeatherForecastBanner({ title, description, humidityLabe
             <div className="flex items-center gap-3">
               <Droplets className="h-5 w-5 text-primary" />
               <div>
-                <div className="fs-kicker">Humidity</div>
-                <div className="mt-1 font-headline text-2xl font-bold text-on-surface">{humidityLabel}</div>
+                <div className="fs-kicker">{primaryMetric.label}</div>
+                <div className="mt-1 font-headline text-2xl font-bold text-on-surface">{primaryMetric.value}</div>
               </div>
             </div>
           </div>
@@ -36,8 +41,8 @@ export default function WeatherForecastBanner({ title, description, humidityLabe
             <div className="flex items-center gap-3">
               <Wind className="h-5 w-5 text-primary" />
               <div>
-                <div className="fs-kicker">Wind</div>
-                <div className="mt-1 font-headline text-2xl font-bold text-on-surface">{windLabel}</div>
+                <div className="fs-kicker">{secondaryMetric.label}</div>
+                <div className="mt-1 font-headline text-2xl font-bold text-on-surface">{secondaryMetric.value}</div>
               </div>
             </div>
           </div>

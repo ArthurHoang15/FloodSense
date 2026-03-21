@@ -16,7 +16,7 @@ export default function createFloodRoutes(store: FloodStore): express.Router {
     const now = new Date()
 
     try {
-      if (IS_LIVE) {
+      if (IS_LIVE && supabase) {
         // ── Expire stale events first ──────────────────────────────────────
         await supabase.rpc('expire_flood_events')
 

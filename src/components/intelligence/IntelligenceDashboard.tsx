@@ -15,12 +15,16 @@ type Props = {
 export default function IntelligenceDashboard({ controller }: Props) {
   const {
     floods,
+    weatherTitle,
     weatherAlert,
-    weatherMetrics,
-    maxRainStart,
+    weatherDescription,
+    weatherPrimaryMetric,
+    weatherSecondaryMetric,
     hotspots,
+    crowdsourceInsight,
     savedRouteInsights,
     historyBars,
+    historySummary,
   } = controller
 
   return (
@@ -31,10 +35,10 @@ export default function IntelligenceDashboard({ controller }: Props) {
         <main className="min-w-0 flex-1 px-3 pb-24 pt-4 md:px-6 md:pt-6 xl:ml-0 xl:pb-10">
           <div className="space-y-8">
             <WeatherForecastBanner
-              title="Heavy Precipitation Expected"
-              description={weatherAlert?.message ?? `Upcoming rain chances remain elevated starting at ${maxRainStart}. District 1 and District 7 are under high flood risk monitoring.`}
-              humidityLabel={weatherMetrics.humidityLabel}
-              windLabel={weatherMetrics.windLabel}
+              title={weatherTitle}
+              description={weatherAlert?.message ?? weatherDescription}
+              primaryMetric={weatherPrimaryMetric}
+              secondaryMetric={weatherSecondaryMetric}
             />
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-stretch">
@@ -43,7 +47,14 @@ export default function IntelligenceDashboard({ controller }: Props) {
               </section>
 
               <section className="lg:col-span-4 lg:h-full">
-                <CrowdsourceReportCard className="lg:h-full" />
+                <CrowdsourceReportCard
+                  title={crowdsourceInsight.title}
+                  description={crowdsourceInsight.description}
+                  primaryMetric={crowdsourceInsight.primaryMetric}
+                  secondaryMetric={crowdsourceInsight.secondaryMetric}
+                  districtLabel={crowdsourceInsight.districtLabel}
+                  className="lg:h-full"
+                />
               </section>
 
               <section className="lg:col-span-6 lg:h-full">
@@ -51,7 +62,7 @@ export default function IntelligenceDashboard({ controller }: Props) {
               </section>
 
               <section className="lg:col-span-6 lg:h-full">
-                <FloodHistoryCard items={historyBars} className="lg:h-full" />
+                <FloodHistoryCard items={historyBars} summary={historySummary} className="lg:h-full" />
               </section>
             </div>
           </div>

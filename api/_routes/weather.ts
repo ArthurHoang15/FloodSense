@@ -48,7 +48,7 @@ export default function createWeatherRoutes(): express.Router {
         })
 
       // Upsert into weather_forecasts (fire-and-forget)
-      if (hourly.length > 0) {
+      if (hourly.length > 0 && supabase) {
         void Promise.resolve(
           supabase
             .from('weather_forecasts')
