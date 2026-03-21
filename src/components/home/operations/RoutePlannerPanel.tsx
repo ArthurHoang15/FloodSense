@@ -49,7 +49,7 @@ export default function RoutePlannerPanel({ onRouteReady, mode = 'compact', clas
     onRouteReady(response.route.coords)
 
     if (voiceEnabled && response.alertText) {
-      speak(response.alertText, voiceVariant)
+      void speak(response.alertText, voiceVariant)
     }
   }
 
@@ -70,7 +70,7 @@ export default function RoutePlannerPanel({ onRouteReady, mode = 'compact', clas
       created_at: new Date().toISOString(),
     }
 
-    addRoute(route)
+    void addRoute(route)
   }
 
   return (

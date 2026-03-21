@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { FloodEvent } from '../../shared/types'
-import { apiGet, apiPost } from '@/utils/api'
+import { apiGet, apiPost, apiPostInternal } from '@/utils/api'
 
 type FloodsApiResponse = { success: boolean; floods: FloodEvent[]; now: string }
 type SimulateResponse = { success: boolean; enabled: boolean; floods: FloodEvent[] }
@@ -30,7 +30,7 @@ export const useFloodStore = create<FloodState>((set, get) => ({
     set({ baseFloods: data.floods, lastFetchIso: data.now })
   },
   startSimulateRain: async () => {
-    const data = await apiPost<SimulateResponse>('/api/internal/simulate-rain', {
+    const data = await apiPostInternal<SimulateResponse>('/api/internal/simulate-rain', {
       preset: 'heavy_rain_hcmc',
       enable: true,
     })
@@ -42,7 +42,7 @@ export const useFloodStore = create<FloodState>((set, get) => ({
     })
   },
   resetSimulated: async () => {
-    await apiPost('/api/internal/reset-simulated', {})
+    await apiPostInternal('/api/internal/reset-simulated', {})
     set({ simulating: false, simulationQueue: [], simulatedVisible: [] })
     await get().fetchFloods()
   },

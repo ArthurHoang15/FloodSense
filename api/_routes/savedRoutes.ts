@@ -1,5 +1,5 @@
 import express, { type Request, type Response } from 'express'
-import supabase from '../lib/supabase.js'
+import supabase from '../_lib/supabase.js'
 
 function getAnonId(req: Request): string | null {
   return (req.headers['x-anonymous-id'] as string) || null

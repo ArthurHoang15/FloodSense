@@ -1,5 +1,5 @@
 import express, { type Request, type Response } from 'express'
-import supabase from '../lib/supabase.js'
+import supabase from '../_lib/supabase.js'
 
 const VOICE_IDS: Record<string, string> = {
   female_south: process.env.ELEVENLABS_VOICE_FEMALE_ID ?? '',
