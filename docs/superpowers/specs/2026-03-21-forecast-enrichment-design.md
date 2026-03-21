@@ -147,18 +147,14 @@ Triggered when `riskScore ≥ 80` (consistent with Section 5 threshold table). F
   city: 'Thành phố Hồ Chí Minh',
   coordinates: DISTRICT_CENTROIDS[district],
   depth_cm: null,
-  severity: derivedFromDistrictScore,   // moderate or heavy
+  severity: districtScore > 90 ? 'heavy' : 'moderate',  // districtScore = compositeScore × multiplier, capped at 100
   confidence: 'medium',
   is_forecast: true,
   forecast_valid_until: peakHour + 3h,
   expires_at: peakHour + 3h,
-  sources: [{
-    source_type: 'forecast',
-    title: 'Open-Meteo Flood API',
-    url: 'https://flood-api.open-meteo.com/v1/flood',
-    snippet: 'River discharge and rainfall forecast data for HCMC',
-    published_at: now()
-  }]
+  // sources: not persisted — flood_sources table is not written for forecast events.
+  // The FloodEvent.sources array will be [] when read back via toFloodEvent().
+  // This is intentional: Section 8 specifies no source URL link in the UI for forecast cards.
 }
 ```
 
@@ -178,13 +174,15 @@ After the existing flood intersection check:
 
 1. The bbox query already returns `is_forecast: true` floods (same table, no extra query)
 2. Separate them from confirmed floods
-3. For each forecast flood whose district intersects the route bbox:
+3. Call `fetchEnrichedWeather()` (uses the 30-min cache — no extra HTTP call if pipeline already ran). Extract `precipitation_sum_6h` (sum of `hourly.rain` next 6h). If the call fails or cache is cold, `precipitation_sum_6h = null`.
 
-```
-"Khu vực [Quận X] có nguy cơ ngập trong [N] giờ tới — dự báo mưa [Y]mm, mực nước sông cao"
-```
+4. For each forecast flood whose district intersects the route bbox, append to `warnings[]`:
+   - If `precipitation_sum_6h != null`: `"Khu vực [Quận X] có nguy cơ ngập trong [N] giờ tới — dự báo mưa [Y]mm"`
+   - If `precipitation_sum_6h == null`: `"Khu vực [Quận X] có nguy cơ ngập trong [N] giờ tới theo dự báo thời tiết"`
 
-4. Append to `warnings[]` — does **not** trigger alternative route calculation
+   `[N]` = hours until `forecast_valid_until`, rounded to nearest integer (minimum 1).
+
+5. Does **not** trigger alternative route calculation.
 
 ---
 
