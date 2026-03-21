@@ -7,6 +7,7 @@ export type FloodSourceType =
   | 'government'
   | 'vetc_mock'
   | 'user_report'
+  | 'forecast'
 
 export interface FloodSource {
   url: string
@@ -42,6 +43,8 @@ export interface FloodEvent {
   expires_at: string
   is_active: boolean
   is_simulated: boolean
+  is_forecast: boolean
+  forecast_valid_until?: string
 }
 
 export interface SavedRoute {

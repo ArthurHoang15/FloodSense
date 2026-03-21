@@ -43,7 +43,7 @@ function makeFlood(lat: number, lng: number, overrides = {}) {
     severity: 'heavy' as const, confidence: 'high' as const, sources: [],
     first_detected_at: new Date().toISOString(), last_confirmed_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 3_600_000).toISOString(),
-    is_active: true, is_simulated: false, ...overrides,
+    is_active: true, is_simulated: false, is_forecast: false, ...overrides,
   }
 }
 
