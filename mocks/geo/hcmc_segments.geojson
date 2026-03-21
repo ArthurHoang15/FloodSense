@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": "HCM-SEG-001", "name": "Nguyễn Hữu Cảnh" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.7168, 10.7896],
+          [106.7211, 10.7889],
+          [106.7257, 10.7879]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "HCM-SEG-002", "name": "Đinh Bộ Lĩnh" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.7152, 10.8040],
+          [106.7189, 10.8012],
+          [106.7219, 10.7982]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": "HCM-SEG-003", "name": "Kinh Dương Vương" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [106.6164, 10.7448],
+          [106.6234, 10.7445],
+          [106.6312, 10.7441]
+        ]
+      }
+    }
+  ]
+}

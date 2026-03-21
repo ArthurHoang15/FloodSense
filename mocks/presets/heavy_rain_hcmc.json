@@ -1,0 +1,482 @@
+[
+  {
+    "id": "sim-001",
+    "street_name": "Nguyễn Hữu Cảnh",
+    "district": "Bình Thạnh",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7889, "lng": 106.7211 },
+    "depth_cm": 45,
+    "severity": "heavy",
+    "confidence": "high",
+    "sources": [
+      {
+        "url": "mock://news/001",
+        "title": "Mưa lớn gây ngập tại Bình Thạnh",
+        "snippet": "Nguyễn Hữu Cảnh ngập sâu, xe chết máy hàng loạt...",
+        "published_at": "2026-03-21T09:10:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:12:00Z",
+    "last_confirmed_at": "2026-03-21T09:20:00Z",
+    "expires_at": "2026-03-21T11:12:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-002",
+    "street_name": "Đinh Bộ Lĩnh",
+    "district": "Bình Thạnh",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8012, "lng": 106.7189 },
+    "depth_cm": 30,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://social/002",
+        "title": "Bài đăng nhóm cư dân",
+        "snippet": "Đinh Bộ Lĩnh kẹt xe vì nước dâng...",
+        "published_at": "2026-03-21T09:05:00Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:08:00Z",
+    "last_confirmed_at": "2026-03-21T09:18:00Z",
+    "expires_at": "2026-03-21T11:08:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-003",
+    "street_name": "Quang Trung",
+    "district": "Gò Vấp",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8356, "lng": 106.6722 },
+    "depth_cm": 25,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://news/003",
+        "title": "Nhiều tuyến đường Gò Vấp ngập",
+        "snippet": "Quang Trung xuất hiện nhiều điểm ngập cục bộ...",
+        "published_at": "2026-03-21T09:00:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:03:00Z",
+    "last_confirmed_at": "2026-03-21T09:14:00Z",
+    "expires_at": "2026-03-21T11:03:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-004",
+    "street_name": "Hồ Học Lãm",
+    "district": "Bình Tân",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7512, "lng": 106.6089 },
+    "depth_cm": 50,
+    "severity": "heavy",
+    "confidence": "high",
+    "sources": [
+      {
+        "url": "mock://government/004",
+        "title": "Thông báo ngập cục bộ",
+        "snippet": "Khu vực Hồ Học Lãm ngập nặng, khuyến cáo hạn chế lưu thông.",
+        "published_at": "2026-03-21T09:07:00Z",
+        "source_type": "government"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:09:00Z",
+    "last_confirmed_at": "2026-03-21T09:21:00Z",
+    "expires_at": "2026-03-21T11:09:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-005",
+    "street_name": "An Dương Vương",
+    "district": "Quận 5",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7523, "lng": 106.6589 },
+    "depth_cm": 20,
+    "severity": "light",
+    "confidence": "low",
+    "sources": [
+      {
+        "url": "mock://social/005",
+        "title": "Báo ngập người dân",
+        "snippet": "An Dương Vương đoạn gần vòng xoay hơi ngập.",
+        "published_at": "2026-03-21T09:11:00Z",
+        "source_type": "user_report"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:13:00Z",
+    "last_confirmed_at": "2026-03-21T09:13:00Z",
+    "expires_at": "2026-03-21T11:13:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-006",
+    "street_name": "Kinh Dương Vương",
+    "district": "Bình Tân",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7445, "lng": 106.6234 },
+    "depth_cm": 35,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://news/006",
+        "title": "Triều cường gây ngập Bình Tân",
+        "snippet": "Kinh Dương Vương ngập vừa, giao thông chậm.",
+        "published_at": "2026-03-21T09:02:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:06:00Z",
+    "last_confirmed_at": "2026-03-21T09:16:00Z",
+    "expires_at": "2026-03-21T11:06:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-007",
+    "street_name": "Phan Anh",
+    "district": "Tân Phú",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7812, "lng": 106.6345 },
+    "depth_cm": 40,
+    "severity": "heavy",
+    "confidence": "high",
+    "sources": [
+      {
+        "url": "mock://news/007",
+        "title": "Tân Phú mưa lớn",
+        "snippet": "Một số đoạn Phan Anh ngập nặng, xe máy phải quay đầu.",
+        "published_at": "2026-03-21T09:04:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:08:00Z",
+    "last_confirmed_at": "2026-03-21T09:19:00Z",
+    "expires_at": "2026-03-21T11:08:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-008",
+    "street_name": "Lê Văn Lương",
+    "district": "Nhà Bè",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.6934, "lng": 106.6978 },
+    "depth_cm": 15,
+    "severity": "light",
+    "confidence": "low",
+    "sources": [
+      {
+        "url": "mock://social/008",
+        "title": "Cộng đồng Nhà Bè",
+        "snippet": "Lê Văn Lương ngập nhẹ, đi chậm.",
+        "published_at": "2026-03-21T09:06:30Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:10:00Z",
+    "last_confirmed_at": "2026-03-21T09:10:00Z",
+    "expires_at": "2026-03-21T11:10:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-009",
+    "street_name": "Nguyễn Văn Linh",
+    "district": "Quận 7",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7234, "lng": 106.7123 },
+    "depth_cm": 20,
+    "severity": "light",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://news/009",
+        "title": "Ùn ứ giờ tan tầm",
+        "snippet": "Nguyễn Văn Linh ngập nhẹ, xe di chuyển chậm.",
+        "published_at": "2026-03-21T09:09:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:12:00Z",
+    "last_confirmed_at": "2026-03-21T09:22:00Z",
+    "expires_at": "2026-03-21T11:12:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-010",
+    "street_name": "Lê Đức Thọ",
+    "district": "Gò Vấp",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8234, "lng": 106.6678 },
+    "depth_cm": 30,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://social/010",
+        "title": "Clip ngắn người dân",
+        "snippet": "Lê Đức Thọ có đoạn nước dâng, xe máy khó đi.",
+        "published_at": "2026-03-21T09:08:00Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:11:00Z",
+    "last_confirmed_at": "2026-03-21T09:15:00Z",
+    "expires_at": "2026-03-21T11:11:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-011",
+    "street_name": "Nguyễn Xí",
+    "district": "Bình Thạnh",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8147, "lng": 106.7076 },
+    "depth_cm": 28,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://social/011",
+        "title": "Cập nhật giao thông",
+        "snippet": "Nguyễn Xí đoạn gần cầu ngập nhẹ đến vừa.",
+        "published_at": "2026-03-21T09:12:00Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:14:00Z",
+    "last_confirmed_at": "2026-03-21T09:18:00Z",
+    "expires_at": "2026-03-21T11:14:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-012",
+    "street_name": "Ung Văn Khiêm",
+    "district": "Bình Thạnh",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8019, "lng": 106.7207 },
+    "depth_cm": 18,
+    "severity": "light",
+    "confidence": "low",
+    "sources": [
+      {
+        "url": "mock://news/012",
+        "title": "Ngập cục bộ nhiều tuyến đường",
+        "snippet": "Ung Văn Khiêm có đoạn ngập nhẹ sau mưa.",
+        "published_at": "2026-03-21T09:03:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:15:00Z",
+    "last_confirmed_at": "2026-03-21T09:15:00Z",
+    "expires_at": "2026-03-21T11:15:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-013",
+    "street_name": "Cộng Hòa",
+    "district": "Tân Bình",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8010, "lng": 106.6517 },
+    "depth_cm": 22,
+    "severity": "light",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://social/013",
+        "title": "Cộng đồng Tân Bình",
+        "snippet": "Cộng Hòa đoạn gần Lăng Cha Cả nước đọng.",
+        "published_at": "2026-03-21T09:16:00Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:17:00Z",
+    "last_confirmed_at": "2026-03-21T09:21:00Z",
+    "expires_at": "2026-03-21T11:17:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-014",
+    "street_name": "Trường Chinh",
+    "district": "Tân Bình",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8122, "lng": 106.6404 },
+    "depth_cm": 34,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://news/014",
+        "title": "Mưa lớn, nhiều tuyến đường ùn ứ",
+        "snippet": "Trường Chinh ngập vừa, xe di chuyển chậm.",
+        "published_at": "2026-03-21T09:14:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:16:00Z",
+    "last_confirmed_at": "2026-03-21T09:22:00Z",
+    "expires_at": "2026-03-21T11:16:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-015",
+    "street_name": "Huỳnh Tấn Phát",
+    "district": "Quận 7",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7429, "lng": 106.7359 },
+    "depth_cm": 27,
+    "severity": "moderate",
+    "confidence": "low",
+    "sources": [
+      {
+        "url": "mock://social/015",
+        "title": "Báo cáo người đi đường",
+        "snippet": "Huỳnh Tấn Phát có đoạn ngập, nên tránh giờ tan tầm.",
+        "published_at": "2026-03-21T09:18:00Z",
+        "source_type": "user_report"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:19:00Z",
+    "last_confirmed_at": "2026-03-21T09:19:00Z",
+    "expires_at": "2026-03-21T11:19:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-016",
+    "street_name": "Lương Định Của",
+    "district": "TP Thủ Đức",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.7918, "lng": 106.7446 },
+    "depth_cm": 32,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://news/016",
+        "title": "Ngập cục bộ phía Đông TP",
+        "snippet": "Lương Định Của nước dâng, xe máy đi khó.",
+        "published_at": "2026-03-21T09:13:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:18:00Z",
+    "last_confirmed_at": "2026-03-21T09:23:00Z",
+    "expires_at": "2026-03-21T11:18:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-017",
+    "street_name": "Xa lộ Hà Nội",
+    "district": "TP Thủ Đức",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8535, "lng": 106.7646 },
+    "depth_cm": 16,
+    "severity": "light",
+    "confidence": "low",
+    "sources": [
+      {
+        "url": "mock://social/017",
+        "title": "Cập nhật mưa lớn",
+        "snippet": "Xa lộ Hà Nội có đoạn nước đọng.",
+        "published_at": "2026-03-21T09:17:00Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:20:00Z",
+    "last_confirmed_at": "2026-03-21T09:20:00Z",
+    "expires_at": "2026-03-21T11:20:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-018",
+    "street_name": "Phạm Văn Đồng",
+    "district": "TP Thủ Đức",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8326, "lng": 106.7292 },
+    "depth_cm": 24,
+    "severity": "moderate",
+    "confidence": "medium",
+    "sources": [
+      {
+        "url": "mock://news/018",
+        "title": "Giao thông cửa ngõ đông bắc",
+        "snippet": "Phạm Văn Đồng ngập nhẹ đến vừa, cần đi chậm.",
+        "published_at": "2026-03-21T09:15:00Z",
+        "source_type": "news"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:19:00Z",
+    "last_confirmed_at": "2026-03-21T09:24:00Z",
+    "expires_at": "2026-03-21T11:19:00Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-019",
+    "street_name": "Quốc lộ 13",
+    "district": "Bình Thạnh",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8243, "lng": 106.7063 },
+    "depth_cm": 38,
+    "severity": "heavy",
+    "confidence": "high",
+    "sources": [
+      {
+        "url": "mock://government/019",
+        "title": "Khuyến cáo hạn chế lưu thông",
+        "snippet": "Quốc lộ 13 khu vực Bình Thạnh ngập nặng.",
+        "published_at": "2026-03-21T09:16:30Z",
+        "source_type": "government"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:18:30Z",
+    "last_confirmed_at": "2026-03-21T09:25:00Z",
+    "expires_at": "2026-03-21T11:18:30Z",
+    "is_active": true,
+    "is_simulated": true
+  },
+  {
+    "id": "sim-020",
+    "street_name": "Lê Quang Định",
+    "district": "Bình Thạnh",
+    "city": "HCMC",
+    "coordinates": { "lat": 10.8125, "lng": 106.6921 },
+    "depth_cm": 19,
+    "severity": "light",
+    "confidence": "low",
+    "sources": [
+      {
+        "url": "mock://social/020",
+        "title": "Bài đăng cộng đồng",
+        "snippet": "Lê Quang Định có điểm ngập nhẹ, xe máy đi được.",
+        "published_at": "2026-03-21T09:21:00Z",
+        "source_type": "social"
+      }
+    ],
+    "first_detected_at": "2026-03-21T09:22:00Z",
+    "last_confirmed_at": "2026-03-21T09:22:00Z",
+    "expires_at": "2026-03-21T11:22:00Z",
+    "is_active": true,
+    "is_simulated": true
+  }
+]

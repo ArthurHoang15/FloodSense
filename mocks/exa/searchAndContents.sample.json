@@ -1,0 +1,52 @@
+{
+  "query": "ngập đường HCMC hôm nay",
+  "type": "auto",
+  "num_results": 5,
+  "results": [
+    {
+      "title": "Mưa lớn, nhiều tuyến đường TP.HCM ngập sâu",
+      "url": "mock://vn-news/001",
+      "published_at": "2026-03-21T09:10:00Z",
+      "highlights": [
+        "Nguyễn Hữu Cảnh ngập sâu, nhiều xe máy chết máy.",
+        "Khu vực Bình Thạnh, Gò Vấp ghi nhận ngập cục bộ."
+      ]
+    },
+    {
+      "title": "Triều cường dâng, giao thông gặp khó",
+      "url": "mock://vn-news/002",
+      "published_at": "2026-03-21T09:05:00Z",
+      "highlights": [
+        "Đinh Bộ Lĩnh kẹt xe do nước dâng.",
+        "Người dân khuyến cáo chọn tuyến đường thay thế."
+      ]
+    },
+    {
+      "title": "Ngập nước cục bộ sau mưa chiều",
+      "url": "mock://vn-news/003",
+      "published_at": "2026-03-21T08:58:00Z",
+      "highlights": [
+        "Quang Trung xuất hiện nhiều điểm ngập.",
+        "Kinh Dương Vương di chuyển chậm."
+      ]
+    },
+    {
+      "title": "Người dân chia sẻ điểm ngập giờ tan tầm",
+      "url": "mock://social/004",
+      "published_at": "2026-03-21T09:08:00Z",
+      "highlights": [
+        "An Dương Vương hơi ngập, đi chậm.",
+        "Lê Đức Thọ có đoạn nước dâng."
+      ]
+    },
+    {
+      "title": "Cảnh báo ngập cục bộ một số khu vực",
+      "url": "mock://gov/005",
+      "published_at": "2026-03-21T09:07:00Z",
+      "highlights": [
+        "Hồ Học Lãm ngập nặng, hạn chế lưu thông.",
+        "Lê Văn Lương ngập nhẹ."
+      ]
+    }
+  ]
+}

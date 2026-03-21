@@ -1,0 +1,46 @@
+{
+  "segments": [
+    {
+      "id": "HCM-SEG-001",
+      "name": "Nguyễn Hữu Cảnh (Bình Thạnh)",
+      "center": { "lat": 10.7889, "lng": 106.7211 },
+      "current_volume": 120,
+      "baseline_volume_by_hour": {
+        "7": 520,
+        "8": 610,
+        "9": 430,
+        "16": 680,
+        "17": 820,
+        "18": 700
+      }
+    },
+    {
+      "id": "HCM-SEG-002",
+      "name": "Đinh Bộ Lĩnh (Bình Thạnh)",
+      "center": { "lat": 10.8012, "lng": 106.7189 },
+      "current_volume": 140,
+      "baseline_volume_by_hour": {
+        "7": 460,
+        "8": 560,
+        "9": 410,
+        "16": 620,
+        "17": 770,
+        "18": 660
+      }
+    },
+    {
+      "id": "HCM-SEG-003",
+      "name": "Kinh Dương Vương (Bình Tân)",
+      "center": { "lat": 10.7445, "lng": 106.6234 },
+      "current_volume": 260,
+      "baseline_volume_by_hour": {
+        "7": 540,
+        "8": 630,
+        "9": 480,
+        "16": 700,
+        "17": 860,
+        "18": 740
+      }
+    }
+  ]
+}
