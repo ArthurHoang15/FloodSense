@@ -1,17 +1,14 @@
-import { BarChart3, CloudRain, Route, Waves } from 'lucide-react'
+import { BarChart3, Route, Waves } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 import SeverityBadge from '@/components/ui/SeverityBadge'
 import { formatDepth, formatTimestamp } from '@/utils/floodPresentation'
 import type { FloodEvent } from '../../../../shared/types'
 
-type RailItemId = 'flood-feed' | 'route-results' | 'analytics' | 'simulate'
+type RailItemId = 'flood-feed' | 'route-results' | 'analytics'
 
 type Props = {
   telemetry: FloodEvent[]
-  onSimulate: () => void
-  onRefresh: () => void
-  simulating: boolean
   activeItem?: RailItemId
 }
 
@@ -19,10 +16,9 @@ const railItems = [
   { id: 'flood-feed' as const, label: 'Flood Feed', icon: Waves, to: '/' },
   { id: 'route-results' as const, label: 'Route Results', icon: Route, to: '/route-results' },
   { id: 'analytics' as const, label: 'Analytics', icon: BarChart3, to: '/intelligence' },
-  { id: 'simulate' as const, label: 'Simulate', icon: CloudRain },
 ]
 
-export default function NavigationRail({ telemetry, onSimulate, onRefresh, simulating, activeItem = 'flood-feed' }: Props) {
+export default function NavigationRail({ telemetry, activeItem = 'flood-feed' }: Props) {
   return (
     <aside className="hidden h-screen w-[320px] shrink-0 px-4 py-4 xl:sticky xl:top-0 xl:flex">
       <SurfaceCard className="flex h-full flex-col p-4">
@@ -73,16 +69,6 @@ export default function NavigationRail({ telemetry, onSimulate, onRefresh, simul
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="mt-4 space-y-3 border-t border-outline-variant/10 pt-4">
-          <button type="button" onClick={onSimulate} disabled={simulating} className="fs-button-primary w-full">
-            <CloudRain className="h-4 w-4" />
-            <span>{simulating ? 'Simulating Rain' : 'Simulate Rain'}</span>
-          </button>
-          <button type="button" onClick={onRefresh} className="fs-button-secondary w-full">
-            Refresh live floods
-          </button>
         </div>
       </SurfaceCard>
     </aside>

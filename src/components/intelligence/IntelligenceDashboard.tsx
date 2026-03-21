@@ -15,23 +15,18 @@ type Props = {
 export default function IntelligenceDashboard({ controller }: Props) {
   const {
     floods,
-    simulating,
     weatherAlert,
     weatherMetrics,
     maxRainStart,
     hotspots,
     savedRouteInsights,
     historyBars,
-    savedRouteCount,
-    voiceEnabled,
-    refreshFloods,
-    runSimulation,
   } = controller
 
   return (
     <div className="fs-shell">
       <div className="mx-auto flex max-w-[1600px] gap-0 xl:gap-2">
-        <NavigationRail telemetry={floods.slice(0, 3)} onSimulate={runSimulation} onRefresh={refreshFloods} simulating={simulating} activeItem="analytics" />
+        <NavigationRail telemetry={floods.slice(0, 3)} activeItem="analytics" />
 
         <main className="min-w-0 flex-1 px-3 pb-24 pt-4 md:px-6 md:pt-6 xl:ml-0 xl:pb-10">
           <div className="space-y-8">
