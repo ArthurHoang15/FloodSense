@@ -14,12 +14,11 @@ type Props = {
 }
 
 export default function MapStage({ floods, routeCoords, altRouteCoords = null, focusLocation = null, headlineFlood, heavyCount }: Props) {
+  const showRouteLegend = !!routeCoords || !!altRouteCoords
+
   return (
     <div className="relative h-[72vh] min-h-[640px] overflow-hidden rounded-[2rem] border border-outline-variant/15 bg-surface-container-lowest shadow-ambient md:h-[calc(100vh-140px)]">
       <FloodMap floods={floods} routeCoords={routeCoords} altRouteCoords={altRouteCoords} focusLocation={focusLocation} />
-
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_35%,rgba(255,180,171,0.18),transparent_16%),radial-gradient(circle_at_68%_22%,rgba(254,179,0,0.18),transparent_14%),linear-gradient(180deg,rgba(10,14,24,0.08),rgba(10,14,24,0.28))]" />
-
       <div className="pointer-events-none absolute left-4 top-4 z-20 md:left-6 md:top-6">
         <SurfaceCard tone="glass" className="p-4">
           <div className="fs-label">Live flood map</div>
@@ -34,6 +33,24 @@ export default function MapStage({ floods, routeCoords, altRouteCoords = null, f
           </div>
         </SurfaceCard>
       </div>
+
+      {showRouteLegend ? (
+        <div className="pointer-events-none absolute right-4 top-4 z-20 md:right-6 md:top-6">
+          <SurfaceCard tone="glass" className="max-w-[280px] p-4">
+            <div className="fs-label">Route legend</div>
+            <div className="mt-3 grid gap-2 text-sm text-on-surface-variant">
+              <div className="flex items-center gap-3">
+                <span className="h-[3px] w-8 rounded-full bg-[#ff6b35]" />
+                <span>Current or previous route</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="h-[3px] w-8 rounded-full bg-[#4ade80]" />
+                <span>Safe route recommendation</span>
+              </div>
+            </div>
+          </SurfaceCard>
+        </div>
+      ) : null}
 
       {headlineFlood ? (
         <div className="pointer-events-none absolute bottom-5 left-4 z-20 md:bottom-6 md:left-6">

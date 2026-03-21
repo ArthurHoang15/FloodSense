@@ -28,7 +28,7 @@ export default function SavedRoutesInsightsCard({ items, className }: Props) {
       <div className="flex items-center justify-between gap-4">
         <h3 className="font-headline text-2xl font-bold tracking-[-0.05em] text-on-surface">Saved Routes</h3>
         <button type="button" className="text-on-surface-variant transition hover:text-on-surface">
-          •••
+          ...
         </button>
       </div>
 

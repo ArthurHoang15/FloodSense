@@ -86,6 +86,7 @@ function toFloodEvent(report: UserReport, existing: FloodEvent | null): FloodEve
     expires_at: new Date(new Date(now).getTime() + REPORT_TTL_MS).toISOString(),
     is_active: true,
     is_simulated: false,
+    is_forecast: false,
   }
 }
 

@@ -8,6 +8,8 @@ import supabase from '../_lib/supabase.js'
 import { searchFloodNews } from '../_lib/exa.js'
 import { extractFloodData } from '../_lib/openai.js'
 import { geocode } from '../_lib/geocode.js'
+import { fetchEnrichedWeather } from '../_lib/weatherEnrich.js'
+import { computeFloodRisk } from '../_lib/floodRisk.js'
 
 const IS_LIVE = process.env.DATA_MODE === 'live'
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -121,6 +123,11 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
     let updated_floods = 0
     let articles_fetched = 0
 
+    // ── Fetch weather risk context once (cached 30 min) ──────────────────
+    const enrichedWeather = await fetchEnrichedWeather()
+    const riskContext = enrichedWeather ? computeFloodRisk(enrichedWeather) : null
+    const riskScore = riskContext?.score ?? 0
+
     // Insert pipeline run log (status: running)
     const { data: runLog } = await supabase
       .from('pipeline_runs')
@@ -139,14 +146,21 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
           const coords = await geocode(`${f.street_name}, ${f.district}, TP.HCM`)
           if (!coords) continue
 
+          // ── Severity/confidence enrichment ───────────────────────────
+          let severity = f.severity
+          let confidence = f.confidence
+          if (riskScore >= 80 && severity === 'moderate') severity = 'heavy'
+          else if (riskScore >= 60 && severity === 'light') severity = 'moderate'
+          if (riskScore >= 60 && confidence === 'low') confidence = 'medium'
+
           const { data: floodId } = await supabase.rpc('upsert_flood_event', {
             p_street_name: f.street_name,
             p_district: f.district,
             p_lat: coords.lat,
             p_lng: coords.lng,
             p_depth_cm: f.depth_cm,
-            p_severity: f.severity,
-            p_confidence: f.confidence,
+            p_severity: severity,
+            p_confidence: confidence,
             p_is_simulated: false,
           })
 
@@ -164,6 +178,26 @@ export default function createInternalRoutes(store: FloodStore): express.Router 
           } else {
             updated_floods++
           }
+        }
+      }
+
+      // ── Generate forecast events for high-risk districts ─────────────
+      if (riskContext && riskScore >= 80 && riskContext.forecastDistricts.length > 0) {
+        const peakHourDate = new Date(riskContext.peakHour)
+        const expiresAt = new Date(peakHourDate.getTime() + 3 * 60 * 60 * 1000).toISOString()
+
+        for (const d of riskContext.forecastDistricts) {
+          await supabase.rpc('upsert_forecast_event', {
+            p_street_name: `Khu vực ${d.district}`,
+            p_district: d.district,
+            p_city: 'Thành phố Hồ Chí Minh',
+            p_lat: d.lat,
+            p_lng: d.lng,
+            p_severity: d.severity,
+            p_confidence: 'medium',
+            p_expires_at: expiresAt,
+            p_forecast_valid_until: expiresAt,
+          })
         }
       }
 

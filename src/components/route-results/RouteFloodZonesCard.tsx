@@ -32,7 +32,7 @@ export default function RouteFloodZonesCard({ zones }: Props) {
                   <div className="truncate text-sm font-semibold text-on-surface">{zone.street_name}</div>
                   <div className="mt-1 text-xs text-on-surface-variant">{zone.district}</div>
                   <div className="mt-3 text-xs leading-5 text-on-surface-variant">
-                    Confidence {zone.confidence} • {zone.depth_cm ? `${zone.depth_cm} cm` : 'Depth pending'}
+                    Confidence {zone.confidence} | {zone.depth_cm ? `${zone.depth_cm} cm` : 'Depth pending'}
                   </div>
                 </div>
                 <SeverityBadge severity={zone.severity} />

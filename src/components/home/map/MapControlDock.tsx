@@ -3,6 +3,8 @@ import { useState } from 'react'
 import AddressAutocompleteInput from '@/components/ui/AddressAutocompleteInput'
 import type { SharedRouteSearchState } from '@/hooks/useDashboardController'
 import { useRouteCheckStore } from '@/stores/routeCheckStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { buildRouteVoiceMessage, speak } from '@/utils/voice'
 import type { AddressSuggestion } from '../../../../shared/types'
 
 type Props = {
@@ -18,6 +20,8 @@ export default function MapControlDock({ onSearchSelect, onRouteReady, routeSear
   const [searchOpen, setSearchOpen] = useState(false)
   const checkRoute = useRouteCheckStore((state) => state.checkRoute)
   const loading = useRouteCheckStore((state) => state.loading)
+  const voiceEnabled = useSettingsStore((state) => state.voiceEnabled)
+  const voiceVariant = useSettingsStore((state) => state.voiceVariant)
 
   const {
     originQuery,
@@ -40,6 +44,9 @@ export default function MapControlDock({ onSearchSelect, onRouteReady, routeSear
     if (!response) return
 
     onRouteReady(response.route.coords)
+    if (voiceEnabled) {
+      void speak(buildRouteVoiceMessage(response), voiceVariant)
+    }
   }
 
   return (

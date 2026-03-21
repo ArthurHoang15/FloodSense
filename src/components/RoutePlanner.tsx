@@ -3,7 +3,7 @@ import { AlertTriangle, Route, Save, Volume2, VolumeX } from 'lucide-react'
 import { useRouteCheckStore } from '@/stores/routeCheckStore'
 import { useSettingsStore, type VoiceVariant } from '@/stores/settingsStore'
 import { useSavedRoutesStore } from '@/stores/savedRoutesStore'
-import { speak } from '@/utils/voice'
+import { buildRouteVoiceMessage, speak } from '@/utils/voice'
 import type { SavedRoute } from '../../shared/types'
 
 type Props = {
@@ -20,8 +20,8 @@ function severityBadge(severity: string) {
 
 export default function RoutePlanner({ onRouteReady }: Props) {
   const [origin, setOrigin] = useState('Q7')
-  const [destination, setDestination] = useState('Tân Bình')
-  const [routeName, setRouteName] = useState('Home → Work')
+  const [destination, setDestination] = useState('Tan Binh')
+  const [routeName, setRouteName] = useState('Home to Work')
 
   const { loading, error, data, checkRoute } = useRouteCheckStore()
   const { voiceEnabled, voiceVariant, setVoiceEnabled, setVoiceVariant } = useSettingsStore()
@@ -32,7 +32,7 @@ export default function RoutePlanner({ onRouteReady }: Props) {
 
   const primaryBanner = useMemo(() => {
     if (!data) return null
-    if (affectedCount === 0) return { tone: 'ok' as const, text: 'No flood zones detected (mock check).' }
+    if (affectedCount === 0) return { tone: 'ok' as const, text: 'No flood zones detected.' }
     return { tone: 'warn' as const, text: `Route intersects ${affectedCount} flood zone(s).` }
   }, [data, affectedCount])
 
@@ -40,15 +40,15 @@ export default function RoutePlanner({ onRouteReady }: Props) {
     const res = await checkRoute(origin, destination)
     if (!res) return
     onRouteReady(res.route.coords)
-    if (voiceEnabled && res.alertText) {
-      void speak(res.alertText, voiceVariant)
+    if (voiceEnabled) {
+      void speak(buildRouteVoiceMessage(res), voiceVariant)
     }
   }
 
   function onSave() {
     if (!data) return
     const now = new Date().toISOString()
-    const r: SavedRoute = {
+    const route: SavedRoute = {
       id: crypto.randomUUID(),
       name: routeName.trim() || 'Saved route',
       origin: { ...data.route.coords[0], address: origin },
@@ -58,7 +58,7 @@ export default function RoutePlanner({ onRouteReady }: Props) {
       notify_enabled: true,
       created_at: now,
     }
-    void addRoute(r)
+    void addRoute(route)
   }
 
   return (
@@ -105,7 +105,7 @@ export default function RoutePlanner({ onRouteReady }: Props) {
           <input
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
-            placeholder="e.g. Tân Bình"
+            placeholder="e.g. Tan Binh"
             className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
           />
         </div>
@@ -116,7 +116,7 @@ export default function RoutePlanner({ onRouteReady }: Props) {
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-zinc-950 hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <AlertTriangle className="h-4 w-4" />
-          <span>{loading ? 'Checking…' : 'Check Flood Risk'}</span>
+          <span>{loading ? 'Checking...' : 'Check Flood Risk'}</span>
         </button>
 
         {error ? <div className="text-xs text-red-300">{error}</div> : null}
@@ -135,9 +135,9 @@ export default function RoutePlanner({ onRouteReady }: Props) {
 
         {data?.warnings?.length ? (
           <div className="grid gap-1 text-xs text-zinc-300">
-            {data.warnings.map((w) => (
-              <div key={w} className="opacity-90">
-                {w}
+            {data.warnings.map((warning) => (
+              <div key={warning} className="opacity-90">
+                {warning}
               </div>
             ))}
           </div>
@@ -147,13 +147,13 @@ export default function RoutePlanner({ onRouteReady }: Props) {
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
             <div className="text-xs font-medium text-zinc-200">Flood zones</div>
             <div className="mt-2 grid gap-2">
-              {data?.floodZones.slice(0, 6).map((z) => (
-                <div key={z.id} className="flex items-center justify-between gap-2">
+              {data?.floodZones.slice(0, 6).map((zone) => (
+                <div key={zone.id} className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="truncate text-xs text-zinc-100">{z.street_name}</div>
-                    <div className="truncate text-[11px] text-zinc-400">{z.district}</div>
+                    <div className="truncate text-xs text-zinc-100">{zone.street_name}</div>
+                    <div className="truncate text-[11px] text-zinc-400">{zone.district}</div>
                   </div>
-                  <span className={severityBadge(z.severity)}>{z.severity}</span>
+                  <span className={severityBadge(zone.severity)}>{zone.severity}</span>
                 </div>
               ))}
             </div>

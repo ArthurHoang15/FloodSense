@@ -10,22 +10,37 @@ export function useRouteResultsController() {
   const { fetchFloods, simulating, startSimulateRain } = useFloodStore()
   const floods = useFloodStore((state) => state.displayFloods())
   const routeData = useRouteCheckStore((state) => state.data)
+  const history = useRouteCheckStore((state) => state.history)
+  const loadHistory = useRouteCheckStore((state) => state.loadHistory)
+  const syncHistory = useRouteCheckStore((state) => state.syncHistory)
   const routeLoading = useRouteCheckStore((state) => state.loading)
   const routes = useSavedRoutesStore((state) => state.routes)
   const loadRoutes = useSavedRoutesStore((state) => state.loadRoutes)
 
   const [routeCoords, setRouteCoords] = useState<LatLng[] | null>(routeData?.route.coords ?? null)
+  const [altRouteCoords, setAltRouteCoords] = useState<LatLng[] | null>(routeData?.alternativeRoute?.coords ?? null)
+  const [safeRouteSelected, setSafeRouteSelected] = useState(false)
 
   useEffect(() => {
     fetchFloods().catch(() => {})
     loadRoutes().catch(() => {})
-  }, [fetchFloods, loadRoutes])
+    syncHistory().catch(() => {})
+    loadHistory().catch(() => {})
+  }, [fetchFloods, loadHistory, loadRoutes, syncHistory])
 
   useEffect(() => {
-    if (routeData?.route.coords?.length) {
-      setRouteCoords(routeData.route.coords)
-    }
+    setRouteCoords(routeData?.route.coords?.length ? routeData.route.coords : null)
+    setAltRouteCoords(routeData?.alternativeRoute?.coords?.length ? routeData.alternativeRoute.coords : null)
+    setSafeRouteSelected(false)
   }, [routeData])
+
+  function activateSafeRoute() {
+    if (!routeData?.alternativeRoute?.coords?.length) return
+
+    setRouteCoords(routeData.alternativeRoute.coords)
+    setAltRouteCoords(routeData.route.coords)
+    setSafeRouteSelected(true)
+  }
 
   const prioritizedFloods = useMemo(() => [...floods].sort(compareFloodPriority), [floods])
   const headlineFlood = prioritizedFloods[0] ?? null
@@ -65,8 +80,12 @@ export function useRouteResultsController() {
     heavyCount: floods.filter((flood) => flood.severity === 'heavy').length,
     routeData,
     routeCoords,
+    altRouteCoords,
     routeLoading,
+    history,
     setRouteCoords,
+    safeRouteSelected,
+    activateSafeRoute,
     routes,
     impactedRouteIds,
     telemetry,

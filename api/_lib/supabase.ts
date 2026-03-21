@@ -38,5 +38,7 @@ export function toFloodEvent(row: Record<string, unknown>): FloodEvent {
     expires_at: String(row.expires_at),
     is_active: Boolean(row.is_active),
     is_simulated: Boolean(row.is_simulated),
+    is_forecast: Boolean(row.is_forecast ?? false),
+    forecast_valid_until: row.forecast_valid_until != null ? String(row.forecast_valid_until) : undefined,
   }
 }

@@ -65,7 +65,7 @@ function buildRainAlert(hourly: HourlyForecast[]) {
     return null
   }
 
-  const timeLabel = new Date(peakHour.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  const timeLabel = new Date(peakHour.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   const severity = severeRain || severeWind ? 'high' : severeProbability ? 'medium' : 'low'
 
   return {
@@ -73,11 +73,11 @@ function buildRainAlert(hourly: HourlyForecast[]) {
     time: peakHour.time,
     severity,
     message:
-      `⛈ Dự báo thời tiết xấu quanh ${timeLabel}. ` +
-      `Xác suất mưa ${peakHour.precipitation_probability}%, ` +
-      `mưa cực đại ${peakHour.rain_mm.toFixed(1)} mm/h, ` +
-      `gió giật ${Math.round(peakHour.wind_gusts_kmh)} km/h. ` +
-      `Nên kiểm tra lại tuyến đường trước khi di chuyển.`,
+      `⛈ Severe weather is forecast around ${timeLabel}. ` +
+      `Rain chance ${peakHour.precipitation_probability}%, ` +
+      `peak rainfall ${peakHour.rain_mm.toFixed(1)} mm/h, ` +
+      `gusts ${Math.round(peakHour.wind_gusts_kmh)} km/h. ` +
+      `Recheck route conditions before departure.`,
   }
 }
 
@@ -118,7 +118,6 @@ async function fetchGovernmentAlerts(): Promise<GovernmentAlert[]> {
 export default function createWeatherRoutes(): express.Router {
   const router = express.Router()
 
-  // ── GET /api/weather/forecast ─────────────────────────────────────────────
   router.get('/forecast', async (_req: Request, res: Response) => {
     try {
       const meteoRes = await fetch(OPEN_METEO_URL)
@@ -154,38 +153,36 @@ export default function createWeatherRoutes(): express.Router {
         weather_code: meteo.current.weather_code ?? 0,
       }
 
-      // Filter to next 6 hours only
       const hourly: HourlyForecast[] = meteo.hourly.time
-        .map((t, i) => ({
-          time: t,
-          precipitation_probability: meteo.hourly.precipitation_probability[i] ?? 0,
-          rain_mm: meteo.hourly.rain[i] ?? 0,
-          wind_gusts_kmh: meteo.hourly.wind_gusts_10m[i] ?? 0,
+        .map((time, index) => ({
+          time,
+          precipitation_probability: meteo.hourly.precipitation_probability[index] ?? 0,
+          rain_mm: meteo.hourly.rain[index] ?? 0,
+          wind_gusts_kmh: meteo.hourly.wind_gusts_10m[index] ?? 0,
         }))
-        .filter((h) => {
-          const d = new Date(h.time + 'Z')
-          return d >= now && d <= sixHoursLater
+        .filter((hour) => {
+          const date = new Date(hour.time + 'Z')
+          return date >= now && date <= sixHoursLater
         })
 
       const governmentAlerts = await fetchGovernmentAlerts()
 
-      // Upsert into weather_forecasts (fire-and-forget)
       if (hourly.length > 0 && supabase) {
         void Promise.resolve(
           supabase
             .from('weather_forecasts')
             .upsert(
-              hourly.map((h) => ({
+              hourly.map((hour) => ({
                 location: 'HCMC',
-                forecast_time: new Date(h.time + 'Z').toISOString(),
-                precipitation_probability: h.precipitation_probability,
-                rain_mm: h.rain_mm,
+                forecast_time: new Date(hour.time + 'Z').toISOString(),
+                precipitation_probability: hour.precipitation_probability,
+                rain_mm: hour.rain_mm,
                 source: 'open-meteo',
                 fetched_at: now.toISOString(),
               })),
               { onConflict: 'location,forecast_time' },
             ),
-        ).catch((e) => console.warn('[weather] upsert failed:', e))
+        ).catch((error) => console.warn('[weather] upsert failed:', error))
       }
 
       const alert = buildRainAlert(hourly)

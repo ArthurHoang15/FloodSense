@@ -24,6 +24,17 @@ vi.mock('../../_lib/geocode.js', () => ({
   mockGeocode: vi.fn().mockReturnValue({ lat: 10.77, lng: 106.7 }),
 }))
 
+vi.mock('../../_lib/weatherEnrich.js', () => ({
+  fetchEnrichedWeather: vi.fn().mockResolvedValue(null),
+  clearWeatherCache: vi.fn(),
+}))
+
+vi.mock('../../_lib/floodRisk.js', () => ({
+  computeFloodRisk: vi.fn().mockReturnValue({
+    score: 0, level: 'low', peakHour: new Date().toISOString(), forecastDistricts: [],
+  }),
+}))
+
 function getSb(): SupabaseMock {
   return (globalThis as Record<string, unknown>).__internalSb as SupabaseMock
 }
@@ -226,5 +237,102 @@ describe('internal routes — live mode', () => {
     getSb().rpc.mockResolvedValue({ data: null, error: new Error('RPC fail') })
     const res = await request(app).post('/check-saved-routes').set(CORRECT_HEADER).send({ flood_id: 'f-1' })
     expect(res.status).toBe(500)
+  })
+})
+
+// ── PIPELINE ENRICHMENT ───────────────────────────────────────────────────
+describe('POST /run-pipeline — forecast enrichment', () => {
+  let enrichApp: express.Application
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fetchEnrichedWeather: any, computeFloodRisk: any, extractFloodData: any, searchFloodNews: any
+
+  beforeAll(async () => {
+    process.env.DATA_MODE = 'live'
+    process.env.INTERNAL_SECRET = SECRET
+    const { default: createInternalRoutes } = await import('../../_routes/internal.js')
+    // Import AFTER internal.js so we get the same cached mock instances it uses
+    fetchEnrichedWeather = (await import('../../_lib/weatherEnrich.js')).fetchEnrichedWeather
+    computeFloodRisk = (await import('../../_lib/floodRisk.js')).computeFloodRisk
+    extractFloodData = (await import('../../_lib/openai.js')).extractFloodData
+    searchFloodNews = (await import('../../_lib/exa.js')).searchFloodNews
+    enrichApp = express()
+    enrichApp.use(express.json())
+    enrichApp.use('/', createInternalRoutes({ base: [], simulated: [] }))
+  })
+
+  afterAll(() => {
+    delete process.env.DATA_MODE
+    delete process.env.INTERNAL_SECRET
+  })
+
+  beforeEach(() => {
+    getSb().__resetAll()
+    fetchEnrichedWeather.mockResolvedValue(null)
+    computeFloodRisk.mockReturnValue({
+      score: 0, level: 'low', peakHour: new Date().toISOString(), forecastDistricts: [],
+    })
+    searchFloodNews.mockResolvedValue([])
+    extractFloodData.mockResolvedValue([])
+    // pipeline_runs result via table mock
+    getSb().__setTableResult('pipeline_runs', { data: { id: 'run-1' }, error: null })
+  })
+
+  it('severity upgraded light→moderate when riskScore ≥ 60', async () => {
+    searchFloodNews.mockResolvedValueOnce([
+      { url: 'http://t.com', title: 'T', text: 'test', publishedDate: new Date().toISOString() },
+    ])
+    extractFloodData.mockResolvedValueOnce([{
+      street_name: 'Đường Test', district: 'Quận 1', depth_cm: 10,
+      severity: 'light', confidence: 'high',
+      source_url: 'http://t.com', source_title: 'T', source_snippet: 't',
+      published_at: new Date().toISOString(),
+    }])
+    fetchEnrichedWeather.mockResolvedValue({
+      current: { time: '', temperature_c: 28, rain_mm: 5, wind_speed_kmh: 20, wind_gusts_kmh: 30, weather_code: 61 },
+      hourly: Array(6).fill({ time: '', precipitation_probability: 70, rain_mm: 5, wind_gusts_kmh: 25, soil_moisture: 0.2 }),
+      riverDischarge: [100, 100, 100, 100, 100, 100, 100],
+      riverDischargeAvg: 100,
+    })
+    computeFloodRisk.mockReturnValue({
+      score: 65, level: 'high', peakHour: new Date().toISOString(), forecastDistricts: [],
+    })
+    getSb().rpc.mockResolvedValue({ data: 'flood-id-1', error: null })
+    getSb().__setTableResult('flood_sources', { data: null, error: null })
+
+    const res = await request(enrichApp).post('/run-pipeline').set(CORRECT_HEADER)
+
+    expect(res.status).toBe(200)
+    expect(getSb().rpc).toHaveBeenCalledWith('upsert_flood_event', expect.objectContaining({
+      p_severity: 'moderate',
+    }))
+  })
+
+  it('forecast events upserted via upsert_forecast_event when riskScore ≥ 80', async () => {
+    const peakTime = new Date(Date.now() + 2 * 3600_000).toISOString()
+    fetchEnrichedWeather.mockResolvedValue({
+      current: { time: '', temperature_c: 28, rain_mm: 10, wind_speed_kmh: 25, wind_gusts_kmh: 40, weather_code: 61 },
+      hourly: Array(6).fill({ time: '', precipitation_probability: 90, rain_mm: 10, wind_gusts_kmh: 40, soil_moisture: 0.35 }),
+      riverDischarge: [200, 200, 200, 200, 200, 200, 200],
+      riverDischargeAvg: 100,
+    })
+    computeFloodRisk.mockReturnValue({
+      score: 85,
+      level: 'critical',
+      peakHour: peakTime,
+      forecastDistricts: [
+        { district: 'Quận Bình Thạnh', lat: 10.8124, lng: 106.7143, severity: 'heavy', districtScore: 95 },
+        { district: 'Quận 8', lat: 10.7230, lng: 106.6285, severity: 'moderate', districtScore: 88 },
+      ],
+    })
+    getSb().rpc.mockResolvedValue({ data: null, error: null })
+
+    const res = await request(enrichApp).post('/run-pipeline').set(CORRECT_HEADER)
+
+    expect(res.status).toBe(200)
+    expect(getSb().rpc).toHaveBeenCalledWith('upsert_forecast_event', expect.objectContaining({
+      p_district: 'Quận Bình Thạnh',
+      p_severity: 'heavy',
+      p_forecast_valid_until: expect.any(String),
+    }))
   })
 })
