@@ -5,6 +5,7 @@ import type { AddressSuggestion, FloodEvent, LatLng } from '../../shared/types'
 type Props = {
   floods: FloodEvent[]
   routeCoords: LatLng[] | null
+  altRouteCoords?: LatLng[] | null
   focusLocation?: AddressSuggestion | null
   onSelectFlood?: (floodId: string) => void
 }
@@ -45,7 +46,7 @@ function toRouteGeoJSON(coords: LatLng[]) {
   }
 }
 
-export default function FloodMap({ floods, routeCoords, focusLocation = null, onSelectFlood }: Props) {
+export default function FloodMap({ floods, routeCoords, altRouteCoords = null, focusLocation = null, onSelectFlood }: Props) {
   const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -54,7 +55,9 @@ export default function FloodMap({ floods, routeCoords, focusLocation = null, on
   const onSelectFloodRef = useRef<Props['onSelectFlood']>(onSelectFlood)
 
   const floodsGeo = useMemo(() => toFeatureCollection(floods), [floods])
+  const hasFloodIntersection = !!altRouteCoords
   const routeGeo = useMemo(() => (routeCoords ? toRouteGeoJSON(routeCoords) : null), [routeCoords])
+  const altRouteGeo = useMemo(() => (altRouteCoords ? toRouteGeoJSON(altRouteCoords) : null), [altRouteCoords])
 
   useEffect(() => {
     onSelectFloodRef.current = onSelectFlood
@@ -180,6 +183,10 @@ export default function FloodMap({ floods, routeCoords, focusLocation = null, on
       }
       return
     }
+
+    const lineColor = hasFloodIntersection ? '#ff6b35' : '#00e5ff'
+    const dashArray = hasFloodIntersection ? [2, 2] : undefined
+
     if (!has) {
       map.addSource('route-line', { type: 'geojson', data: routeGeo as unknown as GeoJSON.FeatureCollection })
       map.addLayer({
@@ -187,16 +194,50 @@ export default function FloodMap({ floods, routeCoords, focusLocation = null, on
         type: 'line',
         source: 'route-line',
         paint: {
-          'line-color': '#00e5ff',
+          'line-color': lineColor,
           'line-width': 4,
           'line-opacity': 0.95,
+          ...(dashArray ? { 'line-dasharray': dashArray } : {}),
         },
       })
       return
     }
     const src = map.getSource('route-line') as mapboxgl.GeoJSONSource | undefined
     if (src) src.setData(routeGeo as unknown as GeoJSON.FeatureCollection)
-  }, [routeGeo])
+    if (map.getLayer('route-line-layer')) {
+      map.setPaintProperty('route-line-layer', 'line-color', lineColor)
+      map.setPaintProperty('route-line-layer', 'line-dasharray', dashArray ?? [])
+    }
+  }, [routeGeo, hasFloodIntersection])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const has = !!map.getSource('safe-route-line')
+    if (!altRouteGeo) {
+      if (has) {
+        if (map.getLayer('safe-route-line-layer')) map.removeLayer('safe-route-line-layer')
+        map.removeSource('safe-route-line')
+      }
+      return
+    }
+    if (!has) {
+      map.addSource('safe-route-line', { type: 'geojson', data: altRouteGeo as unknown as GeoJSON.FeatureCollection })
+      map.addLayer({
+        id: 'safe-route-line-layer',
+        type: 'line',
+        source: 'safe-route-line',
+        paint: {
+          'line-color': '#4ade80',
+          'line-width': 4,
+          'line-opacity': 0.95,
+        },
+      })
+      return
+    }
+    const src = map.getSource('safe-route-line') as mapboxgl.GeoJSONSource | undefined
+    if (src) src.setData(altRouteGeo as unknown as GeoJSON.FeatureCollection)
+  }, [altRouteGeo])
 
   useEffect(() => {
     const map = mapRef.current

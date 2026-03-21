@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Route, Save, Volume2, VolumeX } from 'lucide-react'
+import { AlertTriangle, Route, Save, Shield, Volume2, VolumeX } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import AddressAutocompleteInput from '@/components/ui/AddressAutocompleteInput'
 import SurfaceCard from '@/components/ui/SurfaceCard'
@@ -197,6 +197,25 @@ export default function RoutePlannerPanel({ onRouteReady, mode = 'compact', clas
             {data.warnings.map((warning) => (
               <div key={warning}>{warning}</div>
             ))}
+          </div>
+        ) : null}
+
+        {data?.alternativeRoute ? (
+          <div className="rounded-2xl border border-[#4ade80]/25 bg-[#4ade80]/8 p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-[#4ade80]" />
+              <span className="text-sm font-semibold text-[#4ade80]">Safe alternative available</span>
+            </div>
+            <div className="mt-2 text-sm text-on-surface-variant">
+              Avoids {affectedCount - (data.alternativeRoute.floodZones?.length ?? 0)} flood zone(s)
+            </div>
+            <button
+              type="button"
+              onClick={() => onRouteReady(data.alternativeRoute!.coords)}
+              className="mt-3 w-full rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/15 px-4 py-2.5 text-sm font-medium text-[#4ade80] transition-colors hover:bg-[#4ade80]/25"
+            >
+              Switch to safe route
+            </button>
           </div>
         ) : null}
 

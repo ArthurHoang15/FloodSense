@@ -27,6 +27,7 @@ export const useRouteCheckStore = create<RouteCheckState>((set) => ({
       }
       const data: RouteCheckResponse = {
         route: res.route as RouteCheckResponse['route'],
+        alternativeRoute: (res.alternativeRoute as RouteCheckResponse['alternativeRoute']) ?? null,
         floodZones: (res.floodZones as RouteCheckResponse['floodZones']) ?? [],
         warnings: (res.warnings as RouteCheckResponse['warnings']) ?? [],
         alertText: (res.alertText as RouteCheckResponse['alertText']) ?? null,

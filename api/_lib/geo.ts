@@ -54,3 +54,14 @@ export function bboxIntersects(
   if (a.south > b.north || a.north < b.south) return false
   return true
 }
+
+export function computeBearing(from: LatLng, to: LatLng): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const toDeg = (rad: number) => (rad * 180) / Math.PI
+  const dLng = toRad(to.lng - from.lng)
+  const lat1 = toRad(from.lat)
+  const lat2 = toRad(to.lat)
+  const y = Math.sin(dLng) * Math.cos(lat2)
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+  return (toDeg(Math.atan2(y, x)) + 360) % 360
+}

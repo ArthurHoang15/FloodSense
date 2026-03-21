@@ -1,9 +1,9 @@
 import express, { type Request, type Response } from 'express'
 import type { FloodStore } from '../_lib/mockData.js'
 import { getFloods } from '../_lib/mockData.js'
-import type { LatLng, RouteCheckRequest, RouteCheckResponse } from '../../shared/types.js'
-import { bboxFromCoords, haversineMeters, interpolateLine } from '../_lib/geo.js'
-import { getDrivingRoute } from '../_lib/directions.js'
+import type { FloodEvent, LatLng, RouteCheckRequest, RouteCheckResponse } from '../../shared/types.js'
+import { bboxFromCoords, haversineMeters, interpolateLine, computeBearing } from '../_lib/geo.js'
+import { getDrivingRoute, getRouteAlternatives } from '../_lib/directions.js'
 import { geocode, mockGeocode } from '../_lib/geocode.js'
 import supabase, { toFloodEvent } from '../_lib/supabase.js'
 
@@ -46,7 +46,84 @@ async function buildRouteCoords(origin: LatLng, destination: LatLng): Promise<La
   if (mapboxRoute && mapboxRoute.length > 1) {
     return mapboxRoute
   }
+  console.warn('[route-check] Directions API failed, falling back to straight-line interpolation')
   return interpolateLine(origin, destination, 40)
+}
+
+function countFloodIntersections(coords: LatLng[], floods: FloodEvent[]): FloodEvent[] {
+  return floods.filter((f) => {
+    for (const c of coords) {
+      if (haversineMeters(f.coordinates, c) <= RADIUS_METERS) return true
+    }
+    return false
+  })
+}
+
+function computeFloodCentroid(floods: FloodEvent[]): LatLng {
+  let totalLat = 0
+  let totalLng = 0
+  for (const f of floods) {
+    totalLat += f.coordinates.lat
+    totalLng += f.coordinates.lng
+  }
+  return { lat: totalLat / floods.length, lng: totalLng / floods.length }
+}
+
+function offsetPoint(point: LatLng, bearingDeg: number, distanceMeters: number): LatLng {
+  const R = 6371000
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const toDeg = (rad: number) => (rad * 180) / Math.PI
+  const lat1 = toRad(point.lat)
+  const lng1 = toRad(point.lng)
+  const bearing = toRad(bearingDeg)
+  const d = distanceMeters / R
+
+  const lat2 = Math.asin(Math.sin(lat1) * Math.cos(d) + Math.cos(lat1) * Math.sin(d) * Math.cos(bearing))
+  const lng2 = lng1 + Math.atan2(Math.sin(bearing) * Math.sin(d) * Math.cos(lat1), Math.cos(d) - Math.sin(lat1) * Math.sin(lat2))
+
+  return { lat: toDeg(lat2), lng: toDeg(lng2) }
+}
+
+async function findSafeAlternative(
+  origin: LatLng,
+  destination: LatLng,
+  floods: FloodEvent[],
+): Promise<{ coords: LatLng[]; floodZones: FloodEvent[] } | null> {
+  // Strategy A: request alternative routes from Mapbox/OSRM
+  const alternatives = await getRouteAlternatives(origin, destination)
+  if (alternatives && alternatives.length > 1) {
+    let bestRoute: LatLng[] | null = null
+    let bestFloods: FloodEvent[] = floods // worst case = original
+    for (const alt of alternatives) {
+      const hits = countFloodIntersections(alt, floods)
+      if (hits.length < bestFloods.length) {
+        bestFloods = hits
+        bestRoute = alt
+      }
+    }
+    if (bestRoute && bestFloods.length < floods.length) {
+      return { coords: bestRoute, floodZones: bestFloods }
+    }
+  }
+
+  // Strategy B: waypoint avoidance — offset perpendicular to route bearing at flood centroid
+  const centroid = computeFloodCentroid(floods)
+  const bearing = computeBearing(origin, destination)
+  const perpendicular = (bearing + 90) % 360
+
+  for (const offsetDir of [perpendicular, (perpendicular + 180) % 360]) {
+    const waypoint = offsetPoint(centroid, offsetDir, 500)
+    const waypointRoutes = await getRouteAlternatives(origin, destination, [waypoint])
+    if (waypointRoutes && waypointRoutes.length > 0) {
+      const route = waypointRoutes[0]
+      const hits = countFloodIntersections(route, floods)
+      if (hits.length < floods.length) {
+        return { coords: route, floodZones: hits }
+      }
+    }
+  }
+
+  return null
 }
 
 export default function createRouteCheckRoutes(store: FloodStore): express.Router {
@@ -81,14 +158,7 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
         floods = getFloods(store)
       }
 
-      // Fine-grained 200 m filter along interpolated route points
-      const affected = floods.filter((f) => {
-        const p = f.coordinates
-        for (const c of coords) {
-          if (haversineMeters(p, c) <= RADIUS_METERS) return true
-        }
-        return false
-      })
+      const affected = countFloodIntersections(coords, floods)
 
       const warnings: string[] = []
       if (affected.length > 0) {
@@ -108,7 +178,21 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
             `${affected[0]?.street_name ?? ''} bị ảnh hưởng. Mức độ rủi ro: ${pickSeverityWord(affected.length)}.`
           : null
 
-      const payload: RouteCheckResponse = { route: { coords, bounding_box }, floodZones: affected, warnings, alertText }
+      // Find a safer alternative if the route hits flood zones
+      let alternativeRoute: RouteCheckResponse['alternativeRoute'] = null
+      if (affected.length > 0) {
+        const alt = await findSafeAlternative(origin, destination, affected)
+        if (alt) {
+          alternativeRoute = {
+            coords: alt.coords,
+            bounding_box: bboxFromCoords(alt.coords),
+            floodZones: alt.floodZones,
+          }
+          warnings.push(`Safe alternative route available — avoids ${affected.length - alt.floodZones.length} flood zone(s).`)
+        }
+      }
+
+      const payload: RouteCheckResponse = { route: { coords, bounding_box }, alternativeRoute, floodZones: affected, warnings, alertText }
       res.status(200).json({ success: true, ...payload })
     } catch (err) {
       console.error('[route-check] error:', err)

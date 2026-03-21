@@ -18,6 +18,7 @@ export default function HomeDashboard({ controller }: Props) {
     floods,
     routeCoords,
     setRouteCoords,
+    altRouteCoords,
     mapSearchLocation,
     setMapSearchLocation,
     routeSearch,
@@ -41,7 +42,7 @@ export default function HomeDashboard({ controller }: Props) {
             <div className="min-w-0">
               <section className="relative">
                 <CriticalAlertBanner flood={headlineFlood} />
-                <MapStage floods={floods} routeCoords={routeCoords} focusLocation={mapSearchLocation} headlineFlood={headlineFlood} heavyCount={stats.heavyCount} />
+                <MapStage floods={floods} routeCoords={routeCoords} altRouteCoords={altRouteCoords} focusLocation={mapSearchLocation} headlineFlood={headlineFlood} heavyCount={stats.heavyCount} />
                 <MapControlDock onSearchSelect={setMapSearchLocation} onRouteReady={setRouteCoords} routeSearch={routeSearch} />
                 <VoiceToggle />
                 <IntelligenceFeed items={feedItems} />

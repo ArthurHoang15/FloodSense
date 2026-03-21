@@ -103,6 +103,7 @@ export function useDashboardController() {
   const { voiceEnabled, voiceVariant, notificationsEnabled } = useSettingsStore()
 
   const [routeCoords, setRouteCoords] = useState<LatLng[] | null>(null)
+  const [altRouteCoords, setAltRouteCoords] = useState<LatLng[] | null>(null)
   const [mapSearchLocation, setMapSearchLocation] = useState<AddressSuggestion | null>(null)
   const [originQuery, setOriginQuery] = useState('')
   const [destinationQuery, setDestinationQuery] = useState('')
@@ -127,6 +128,7 @@ export function useDashboardController() {
     if (routeData?.route?.coords?.length) {
       setRouteCoords(routeData.route.coords)
     }
+    setAltRouteCoords(routeData?.alternativeRoute?.coords ?? null)
   }, [routeData])
 
   useInterval(() => {
@@ -174,6 +176,8 @@ export function useDashboardController() {
     floods,
     routeCoords,
     setRouteCoords,
+    altRouteCoords,
+    setAltRouteCoords,
     mapSearchLocation,
     setMapSearchLocation,
     routeData,

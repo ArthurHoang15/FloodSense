@@ -65,6 +65,11 @@ export interface RouteCheckResponse {
     coords: LatLng[]
     bounding_box: { north: number; south: number; east: number; west: number }
   }
+  alternativeRoute?: {
+    coords: LatLng[]
+    bounding_box: { north: number; south: number; east: number; west: number }
+    floodZones: FloodEvent[]
+  } | null
   floodZones: FloodEvent[]
   warnings: string[]
   alertText: string | null
