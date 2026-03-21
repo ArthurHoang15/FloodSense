@@ -59,13 +59,13 @@ This design adds a forecast enrichment layer that feeds weather data back into t
 
 ```
 Pipeline run (every 5 min)
-  ├─ fetchEnrichedWeather()          ← expanded Open-Meteo fetch (weather + flood API)
-  │     └─ cached 30 min (module-level)
-  ├─ computeFloodRisk(weather)       ← new floodRisk.ts
+  ├─ fetchEnrichedWeather()            ← new api/_lib/weatherEnrich.ts (weather + flood API)
+  │     └─ cached 30 min (module-level, shared with route check)
+  ├─ computeFloodRisk(weather)         ← new api/_lib/floodRisk.ts
   │     └─ returns { score, level, peakHour, forecastDistricts[] }
   ├─ [existing] Exa.ai → GPT-4o extraction
   │     └─ enrichFloodSeverity(flood, riskContext)   ← severity/confidence adjustment
-  └─ [new] generateForecastEvents(riskContext)       ← synthetic FloodEvents if score ≥ 70
+  └─ [new] generateForecastEvents(riskContext)       ← upsert_forecast_event() RPC if score ≥ 80
 
 Route check (POST /api/route-check)
   ├─ [existing] active flood intersection
@@ -83,13 +83,13 @@ Frontend
 
 ### Score Formula
 
-| Factor | Variable | Weight |
-|---|---|---|
-| Rainfall intensity | `precipitation_sum` next 6h (mm) | 50% |
-| Soil saturation | `soil_moisture_0_to_1cm` (m³/m³) | 25% |
-| River discharge | current vs 7-day avg (ratio) | 25% |
+| Factor | Variable | Normalisation cap | Weight |
+|---|---|---|---|
+| Rainfall intensity | Sum of `hourly.rain` (mm/h) for next 6h | 50 mm | 50% |
+| Soil saturation | `soil_moisture_0_to_1cm` (m³/m³) | 0.4 m³/m³ | 25% |
+| River discharge | `river_discharge[0]` ÷ 7-day rolling avg | ratio 2.0 | 25% |
 
-Each factor normalized 0–1 (clamped). Composite score = weighted sum × 100.
+Each factor = `Math.min(raw / cap, 1.0)`. Composite score = weighted sum × 100.
 
 ### Thresholds
 
@@ -133,7 +133,7 @@ if riskScore ≥ 60 AND confidence == 'low':
 
 ### Forecast Event Generation
 
-Triggered when `riskScore ≥ 70`. For each district in `forecastDistricts` (sorted by adjusted score, top 3):
+Triggered when `riskScore ≥ 80` (consistent with Section 5 threshold table). For each district in `forecastDistricts` (sorted by adjusted score, top 3):
 
 ```typescript
 {
@@ -147,11 +147,21 @@ Triggered when `riskScore ≥ 70`. For each district in `forecastDistricts` (sor
   is_forecast: true,
   forecast_valid_until: peakHour + 3h,
   expires_at: peakHour + 3h,
-  sources: [{ source_type: 'forecast', title: 'Open-Meteo Flood API', ... }]
+  sources: [{
+    source_type: 'forecast',
+    title: 'Open-Meteo Flood API',
+    url: 'https://flood-api.open-meteo.com/v1/flood',
+    snippet: 'River discharge and rainfall forecast data for HCMC',
+    published_at: now()
+  }]
 }
 ```
 
-Upserted with conflict key `(district, is_forecast, DATE(forecast_valid_until))` — one forecast event per district per day.
+Upserted via a **new `upsert_forecast_event()` stored procedure** (not `upsert_flood_event()`) with conflict key `(district, DATE(forecast_valid_until))` WHERE `is_forecast = true`. This procedure:
+- Inserts on conflict-do-nothing (preserves original `expires_at` on re-runs — does NOT reset to `now() + 2h`)
+- Does not call the existing `expire_flood_events()` path
+
+One forecast event per district per day.
 
 ---
 
@@ -215,6 +225,33 @@ ALTER TABLE flood_events
 CREATE UNIQUE INDEX flood_events_forecast_district_day_idx
   ON flood_events (district, DATE(forecast_valid_until))
   WHERE is_forecast = true;
+
+-- New stored procedure: upsert forecast events (conflict = same district + same day)
+-- Uses INSERT ... ON CONFLICT DO NOTHING to preserve expires_at on re-runs
+CREATE OR REPLACE FUNCTION upsert_forecast_event(
+  p_street_name text, p_district text, p_city text,
+  p_lat double precision, p_lng double precision,
+  p_severity text, p_confidence text,
+  p_expires_at timestamptz, p_forecast_valid_until timestamptz
+) RETURNS uuid AS $$
+DECLARE
+  v_id uuid;
+BEGIN
+  INSERT INTO flood_events (
+    street_name, district, city, lat, lng,
+    severity, confidence, is_forecast, is_active, is_simulated,
+    first_detected_at, last_confirmed_at, expires_at, forecast_valid_until
+  ) VALUES (
+    p_street_name, p_district, p_city, p_lat, p_lng,
+    p_severity, p_confidence, true, true, false,
+    now(), now(), p_expires_at, p_forecast_valid_until
+  )
+  ON CONFLICT (district, DATE(forecast_valid_until)) WHERE is_forecast = true
+  DO NOTHING
+  RETURNING id INTO v_id;
+  RETURN v_id;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 ---
@@ -224,12 +261,14 @@ CREATE UNIQUE INDEX flood_events_forecast_district_day_idx
 | File | Type | Description |
 |---|---|---|
 | `shared/types.ts` | Modified | Add `is_forecast`, `forecast_valid_until`, `'forecast'` source type |
-| `api/_lib/weather.ts` | Modified | Expand Open-Meteo fetch + new Flood API fetch |
-| `api/_lib/floodRisk.ts` | **New** | `computeFloodRisk()` scoring function + district lookup |
-| `api/_routes/internal.ts` | Modified | Use risk context in pipeline |
-| `api/_routes/routeCheck.ts` | Modified | Forecast warning pass |
+| `api/_lib/weatherEnrich.ts` | **New** | `fetchEnrichedWeather()` — calls Open-Meteo weather + flood APIs, 30-min cache |
+| `api/_lib/floodRisk.ts` | **New** | `computeFloodRisk()` scoring function + district centroid lookup |
+| `api/_lib/supabase.ts` | Modified | Update `toFloodEvent()` mapper to read `is_forecast`, `forecast_valid_until` |
+| `api/_routes/internal.ts` | Modified | Use risk context in pipeline; call `upsert_forecast_event` RPC |
+| `api/_routes/routeCheck.ts` | Modified | Separate forecast floods from confirmed; append forecast warnings |
 | `src/components/home/...` | Modified | Forecast card styling in IntelligenceFeed + route warnings |
-| `supabase/migrations/` | **New** | Add `is_forecast`, `forecast_valid_until` columns |
+| `supabase/migrations/002_forecast_events.sql` | **New** | Add columns, unique index, `upsert_forecast_event()` RPC |
+| `mocks/presets/heavy_rain_hcmc.json` | Modified | Add `is_forecast: false` to all 20 mock records |
 
 ---
 
