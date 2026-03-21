@@ -15,7 +15,7 @@ export default function OperationsDock({ onRouteReady, lastAlert, impactedRouteI
   const { simulating, startSimulateRain, resetSimulated, fetchFloods } = useFloodStore()
 
   return (
-    <div className="relative z-20 mt-6 grid gap-4 xl:absolute xl:right-6 xl:top-6 xl:mt-0 xl:max-h-[calc(100%-7rem)] xl:w-[420px] xl:overflow-y-auto xl:pr-1">
+    <div className="relative z-20 mt-6 grid gap-4 xl:mt-0 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
       <RoutePlannerPanel onRouteReady={onRouteReady} />
       <SurfaceCard className="p-5">
         <div className="fs-label">Demo controls</div>

@@ -1,46 +1,56 @@
-import { BarChart3, CloudRain, Radar, Route, Waves } from 'lucide-react'
+import { BarChart3, CloudRain, Route, Waves } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import SurfaceCard from '@/components/ui/SurfaceCard'
 import SeverityBadge from '@/components/ui/SeverityBadge'
 import { formatDepth, formatTimestamp } from '@/utils/floodPresentation'
 import type { FloodEvent } from '../../../../shared/types'
+
+type RailItemId = 'flood-feed' | 'route-results' | 'analytics' | 'simulate'
 
 type Props = {
   telemetry: FloodEvent[]
   onSimulate: () => void
   onRefresh: () => void
   simulating: boolean
+  activeItem?: RailItemId
 }
 
 const railItems = [
-  { label: 'Flood Feed', icon: Waves, active: true },
-  { label: 'Route Results', icon: Route, active: false },
-  { label: 'Analytics', icon: BarChart3, active: false },
-  { label: 'Simulate', icon: CloudRain, active: false },
+  { id: 'flood-feed' as const, label: 'Flood Feed', icon: Waves, to: '/' },
+  { id: 'route-results' as const, label: 'Route Results', icon: Route, to: '/route-results' },
+  { id: 'analytics' as const, label: 'Analytics', icon: BarChart3, to: '/intelligence' },
+  { id: 'simulate' as const, label: 'Simulate', icon: CloudRain },
 ]
 
-export default function NavigationRail({ telemetry, onSimulate, onRefresh, simulating }: Props) {
+export default function NavigationRail({ telemetry, onSimulate, onRefresh, simulating, activeItem = 'flood-feed' }: Props) {
   return (
-    <aside className="hidden w-[320px] flex-col gap-4 px-4 pb-6 pt-24 xl:flex">
+    <aside className="hidden h-screen w-[320px] shrink-0 px-4 py-4 xl:sticky xl:top-0 xl:flex">
       <SurfaceCard className="flex h-full flex-col p-4">
-        <div className="flex items-center gap-3 px-2 pb-2">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-container/15 text-primary-container">
-            <Radar className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="font-headline text-base font-bold uppercase tracking-[-0.06em] text-primary">Intelligence</div>
-            <div className="fs-kicker mt-1">HCM live telemetry</div>
-          </div>
-        </div>
+        <Link to="/" className="rounded-3xl bg-surface-container-low px-4 py-4 transition hover:bg-surface-container">
+          <div className="font-headline text-2xl font-black tracking-[-0.08em] text-primary-container">FloodSense HCM</div>
+          <div className="fs-kicker mt-2">Luminous flood intelligence for Ho Chi Minh City</div>
+        </Link>
 
-        <div className="mt-3 grid gap-2">
+        <div className="mt-6 grid gap-2">
           {railItems.map((item) => (
+            item.to ? (
+            <Link
+              key={item.label}
+              to={item.to}
+              className={item.id === activeItem ? 'flex items-center gap-3 rounded-2xl bg-surface-container-highest px-4 py-3 text-primary shadow-ambient' : 'flex items-center gap-3 rounded-2xl px-4 py-3 text-on-surface-variant transition hover:bg-surface-container-lowest hover:text-on-surface'}
+            >
+              <item.icon className="h-4 w-4" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </Link>
+            ) : (
             <div
               key={item.label}
-              className={item.active ? 'flex items-center gap-3 rounded-2xl bg-surface-container-highest px-4 py-3 text-primary shadow-ambient' : 'flex items-center gap-3 rounded-2xl px-4 py-3 text-on-surface-variant transition hover:bg-surface-container-lowest hover:text-on-surface'}
+              className={item.id === activeItem ? 'flex items-center gap-3 rounded-2xl bg-surface-container-highest px-4 py-3 text-primary shadow-ambient' : 'flex items-center gap-3 rounded-2xl px-4 py-3 text-on-surface-variant transition hover:bg-surface-container-lowest hover:text-on-surface'}
             >
               <item.icon className="h-4 w-4" />
               <span className="text-sm font-medium">{item.label}</span>
             </div>
+            )
           ))}
         </div>
 

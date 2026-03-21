@@ -1,24 +1,51 @@
 import { Bell, Bookmark, Volume2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import SurfaceCard from '@/components/ui/SurfaceCard'
+
+type NavSection = 'live-map' | 'route-check' | 'intelligence'
 
 type Props = {
   savedRouteCount: number
   voiceEnabled: boolean
+  activeSection?: NavSection
 }
 
-export default function TopNavigation({ savedRouteCount, voiceEnabled }: Props) {
+const navItems: Array<{ id: NavSection; label: string; to?: string }> = [
+  { id: 'live-map', label: 'Live Map', to: '/' },
+  { id: 'route-check', label: 'Route Check' },
+  { id: 'intelligence', label: 'Intelligence', to: '/intelligence' },
+]
+
+export default function TopNavigation({ savedRouteCount, voiceEnabled, activeSection = 'live-map' }: Props) {
   return (
     <nav className="fixed inset-x-0 top-0 z-50 px-3 py-3 md:px-6">
       <SurfaceCard tone="glass" className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 md:px-6">
         <div className="flex items-center gap-8">
-          <div>
+          <Link to="/">
             <div className="font-headline text-xl font-black tracking-[-0.08em] text-primary-container">FloodSense HCM</div>
             <div className="fs-kicker mt-1 hidden md:block">Realtime flood intelligence for Ho Chi Minh City</div>
-          </div>
+          </Link>
           <div className="hidden items-center gap-6 text-sm text-on-surface-variant md:flex">
-            <span className="border-b-2 border-primary-container pb-1 font-medium text-primary">Live Map</span>
-            <span>Route Check</span>
-            <span>Intelligence</span>
+            {navItems.map((item) => {
+              const active = item.id === activeSection
+              const className = active
+                ? 'border-b-2 border-primary-container pb-1 font-medium text-primary'
+                : 'font-medium text-on-surface-variant transition hover:text-on-surface'
+
+              if (!item.to) {
+                return (
+                  <span key={item.id} className={className}>
+                    {item.label}
+                  </span>
+                )
+              }
+
+              return (
+                <Link key={item.id} to={item.to} className={className}>
+                  {item.label}
+                </Link>
+              )
+            })}
           </div>
         </div>
 
