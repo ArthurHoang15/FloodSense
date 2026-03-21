@@ -5,7 +5,7 @@ const HCMC_LAT = 10.7769
 const HCMC_LNG = 106.7009
 const OPEN_METEO_URL =
   `https://api.open-meteo.com/v1/forecast?latitude=${HCMC_LAT}&longitude=${HCMC_LNG}` +
-  `&hourly=precipitation_probability,rain&forecast_days=1&timezone=Asia%2FHo_Chi_Minh`
+  `&hourly=precipitation_probability,rain&forecast_days=1&timezone=UTC`
 
 export interface HourlyForecast {
   time: string
@@ -43,7 +43,7 @@ export default function createWeatherRoutes(): express.Router {
           rain_mm: meteo.hourly.rain[i] ?? 0,
         }))
         .filter((h) => {
-          const d = new Date(h.time)
+          const d = new Date(h.time + 'Z')
           return d >= now && d <= sixHoursLater
         })
 
@@ -54,7 +54,7 @@ export default function createWeatherRoutes(): express.Router {
           .upsert(
             hourly.map((h) => ({
               location: 'HCMC',
-              forecast_time: new Date(h.time).toISOString(),
+              forecast_time: new Date(h.time + 'Z').toISOString(),
               precipitation_probability: h.precipitation_probability,
               rain_mm: h.rain_mm,
               source: 'open_meteo',
