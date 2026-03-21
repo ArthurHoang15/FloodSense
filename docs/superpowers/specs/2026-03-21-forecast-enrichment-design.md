@@ -100,18 +100,23 @@ Each factor = `Math.min(raw / cap, 1.0)`. Composite score = weighted sum × 100.
 | 60–79 | `high` | Severity upgrades on extracted floods |
 | 80–100 | `critical` | Severity upgrades + generate forecast events |
 
-### Flood-Prone District Multipliers
+### Flood-Prone District Multipliers & Centroids
 
-Static lookup for HCMC districts with historical flood risk weighting:
+Defined in `api/_lib/floodRisk.ts` as a static `DISTRICT_RISK_MAP` object:
 
-| District | Multiplier | Reason |
-|---|---|---|
-| Quận Bình Thạnh | 1.3 | Low elevation, riverside |
-| Quận 8 | 1.3 | Canal network, low elevation |
-| Quận 6 | 1.2 | Flood-prone drainage area |
-| Quận 7 | 1.2 | Riverside, Nhà Bè tributary |
-| Quận 12 | 1.1 | North HCMC, Vàm Thuật river |
-| Thủ Đức | 1.1 | Đồng Nai river proximity |
+| District | Lat | Lng | Multiplier | Reason |
+|---|---|---|---|---|
+| Quận Bình Thạnh | 10.8124 | 106.7143 | 1.3 | Low elevation, riverside |
+| Quận 8 | 10.7230 | 106.6285 | 1.3 | Canal network, low elevation |
+| Quận 6 | 10.7462 | 106.6340 | 1.2 | Flood-prone drainage area |
+| Quận 7 | 10.7320 | 106.7210 | 1.2 | Riverside, Nhà Bè tributary |
+| Quận 12 | 10.8680 | 106.6570 | 1.1 | North HCMC, Vàm Thuật river |
+| Thủ Đức | 10.8544 | 106.7715 | 1.1 | Đồng Nai river proximity |
+
+`computeFloodRisk()` output includes:
+- `score` (0–100), `level` (`low`|`moderate`|`high`|`critical`)
+- `peakHour`: ISO8601 timestamp of the hour in the next 6h window with the highest `hourly.rain` value
+- `forecastDistricts[]`: top-3 districts sorted by `districtScore = compositeScore × multiplier`, included only when `score ≥ 80`
 
 ---
 
@@ -159,9 +164,11 @@ Triggered when `riskScore ≥ 80` (consistent with Section 5 threshold table). F
 
 Upserted via a **new `upsert_forecast_event()` stored procedure** (not `upsert_flood_event()`) with conflict key `(district, DATE(forecast_valid_until))` WHERE `is_forecast = true`. This procedure:
 - Inserts on conflict-do-nothing (preserves original `expires_at` on re-runs — does NOT reset to `now() + 2h`)
-- Does not call the existing `expire_flood_events()` path
+- Returns `NULL` on conflict (no row returned) — this is intentional; callers must NOT insert into `flood_sources` for forecast events (source data is embedded in the event's `sources` field, not a separate table row)
 
 One forecast event per district per day.
+
+**Expiry:** `expire_flood_events()` is intentionally left unchanged. Forecast events have `is_simulated = false` so they are correctly cleaned up by the existing expiry mechanism when `expires_at < now()`. No modification to `expire_flood_events()` is needed.
 
 ---
 
@@ -211,6 +218,12 @@ forecast_valid_until?: string  // ISO8601 — auto-expiry of forecast window
 type FloodSourceType = 'news' | 'social' | 'government' | 'vetc_mock' | 'user_report' | 'forecast'
 ```
 
+**`toFloodEvent()` mapper** (`api/_lib/supabase.ts`) must add:
+```typescript
+is_forecast: Boolean(row.is_forecast ?? false),
+forecast_valid_until: row.forecast_valid_until != null ? String(row.forecast_valid_until) : undefined,
+```
+
 ---
 
 ## 10. Database Migration
@@ -220,6 +233,9 @@ type FloodSourceType = 'news' | 'social' | 'government' | 'vetc_mock' | 'user_re
 ALTER TABLE flood_events
   ADD COLUMN is_forecast boolean NOT NULL DEFAULT false,
   ADD COLUMN forecast_valid_until timestamptz;
+
+-- Extend source type enum
+ALTER TYPE flood_source_type ADD VALUE IF NOT EXISTS 'forecast';
 
 -- Unique constraint: one forecast event per district per day
 CREATE UNIQUE INDEX flood_events_forecast_district_day_idx
