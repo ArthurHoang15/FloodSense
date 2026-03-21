@@ -130,7 +130,8 @@ async function gptExtract(article: ExaArticle): Promise<ExtractedFlood[]> {
         published_at: article.publishedDate ?? new Date().toISOString(),
       }))
   } catch (err) {
-    console.warn('[openai] extraction failed, falling back to rule-based:', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn('[openai] extraction failed, falling back to rule-based:', msg)
     return ruleBasedExtract(article)
   }
 }

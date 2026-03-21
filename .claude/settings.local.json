@@ -12,7 +12,20 @@
       "Bash(powershell -Command \"Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\lib'' -NewName ''_lib''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\routes'' -NewName ''_routes''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\app.ts'' -NewName ''_app.ts''; Rename-Item -Path ''d:\\\\Anh-Quan\\\\Lotus-hack\\\\FloodSense\\\\api\\\\server.ts'' -NewName ''_server.ts''\")",
       "Bash(powershell -Command \":*)",
       "Bash(powershell -Command \"Remove-Item -Path ''api\\\\lib'' -Recurse -Force; Remove-Item -Path ''api\\\\routes'' -Recurse -Force\")",
-      "Bash(echo \"TS_EXIT:$?\")"
+      "Bash(echo \"TS_EXIT:$?\")",
+      "Bash(xargs kill:*)",
+      "Bash(taskkill //F //FI 'WINDOWTITLE eq *_server*')",
+      "Bash(netstat -ano)",
+      "Bash(taskkill:*)",
+      "Bash(xargs -I{} taskkill //F //PID {})",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:opendata.hochiminhcity.gov.vn)",
+      "WebFetch(domain:camera-hcm.eplus.dev)",
+      "WebFetch(domain:trafficvision.live)",
+      "WebFetch(domain:giaothong.hochiminhcity.gov.vn)",
+      "WebFetch(domain:worldcam.eu)",
+      "WebFetch(domain:api.windy.com)"
     ]
   }
 }
