@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
-import type { FloodEvent, LatLng } from '../../shared/types'
+import type { AddressSuggestion, FloodEvent, LatLng } from '../../shared/types'
 
 type Props = {
   floods: FloodEvent[]
   routeCoords: LatLng[] | null
+  focusLocation?: AddressSuggestion | null
   onSelectFlood?: (floodId: string) => void
 }
 
@@ -44,11 +45,12 @@ function toRouteGeoJSON(coords: LatLng[]) {
   }
 }
 
-export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) {
+export default function FloodMap({ floods, routeCoords, focusLocation = null, onSelectFlood }: Props) {
   const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const popupRef = useRef<mapboxgl.Popup | null>(null)
+  const searchMarkerRef = useRef<mapboxgl.Marker | null>(null)
   const onSelectFloodRef = useRef<Props['onSelectFlood']>(onSelectFlood)
 
   const floodsGeo = useMemo(() => toFeatureCollection(floods), [floods])
@@ -195,6 +197,27 @@ export default function FloodMap({ floods, routeCoords, onSelectFlood }: Props) 
     const src = map.getSource('route-line') as mapboxgl.GeoJSONSource | undefined
     if (src) src.setData(routeGeo as unknown as GeoJSON.FeatureCollection)
   }, [routeGeo])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    if (!focusLocation) {
+      searchMarkerRef.current?.remove()
+      searchMarkerRef.current = null
+      return
+    }
+
+    const marker = searchMarkerRef.current ?? new mapboxgl.Marker({ color: '#feb300' })
+    marker.setLngLat([focusLocation.coordinates.lng, focusLocation.coordinates.lat]).addTo(map)
+    searchMarkerRef.current = marker
+
+    map.flyTo({
+      center: [focusLocation.coordinates.lng, focusLocation.coordinates.lat],
+      zoom: 14.5,
+      essential: true,
+    })
+  }, [focusLocation])
 
   if (!token) {
     return (

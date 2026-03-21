@@ -4,6 +4,12 @@ import request from 'supertest'
 import type { SupabaseMock } from '../../__tests__/helpers/supabaseMock.js'
 import type { FloodStore } from '../../_lib/mockData.js'
 
+const getDrivingRouteMock = vi.fn()
+
+vi.mock('../../_lib/directions.js', () => ({
+  getDrivingRoute: getDrivingRouteMock,
+}))
+
 vi.mock('../../_lib/supabase.js', async () => {
   const { makeSupabaseMock } = await import('../../__tests__/helpers/supabaseMock.js')
   const sb = makeSupabaseMock()
@@ -49,7 +55,7 @@ describe('POST /route-check — mock mode', () => {
 
   beforeAll(async () => {
     process.env.DATA_MODE = 'mock'
-    vi.resetModules()
+    getDrivingRouteMock.mockResolvedValue(null)
     const mod = await import('../../_routes/routeCheck.js')
 
     // store with no floods
@@ -68,7 +74,11 @@ describe('POST /route-check — mock mode', () => {
 
   afterAll(() => {
     delete process.env.DATA_MODE
-    vi.resetModules()
+    getDrivingRouteMock.mockReset()
+  })
+
+  beforeEach(() => {
+    getDrivingRouteMock.mockResolvedValue(null)
   })
 
   it('missing body → 400', async () => {
@@ -126,6 +136,27 @@ describe('POST /route-check — mock mode', () => {
     expect(res.body.floodZones.length).toBeGreaterThan(0)
     expect(res.body.alertText).toMatch(/Cảnh báo/)
   })
+
+  it('uses mapbox directions geometry when available', async () => {
+    getDrivingRouteMock.mockResolvedValueOnce([
+      { lat: 10.7366, lng: 106.7222 },
+      { lat: 10.742, lng: 106.71 },
+      { lat: 10.759, lng: 106.689 },
+      { lat: 10.781, lng: 106.668 },
+      { lat: 10.8015, lng: 106.6526 },
+    ])
+
+    const res = await request(app).post('/').send({ origin: 'q7', destination: 'tân bình' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.route.coords).toEqual([
+      { lat: 10.7366, lng: 106.7222 },
+      { lat: 10.742, lng: 106.71 },
+      { lat: 10.759, lng: 106.689 },
+      { lat: 10.781, lng: 106.668 },
+      { lat: 10.8015, lng: 106.6526 },
+    ])
+  })
 })
 
 // ── LIVE MODE ──────────────────────────────────────────────────────────────
@@ -134,7 +165,7 @@ describe('POST /route-check — live mode', () => {
 
   beforeAll(async () => {
     process.env.DATA_MODE = 'live'
-    vi.resetModules()
+    getDrivingRouteMock.mockResolvedValue(null)
     const mod = await import('../../_routes/routeCheck.js')
     app = express()
     app.use(express.json())
@@ -143,10 +174,13 @@ describe('POST /route-check — live mode', () => {
 
   afterAll(() => {
     delete process.env.DATA_MODE
-    vi.resetModules()
+    getDrivingRouteMock.mockReset()
   })
 
-  beforeEach(() => getSb().__resetAll())
+  beforeEach(() => {
+    getSb().__resetAll()
+    getDrivingRouteMock.mockResolvedValue(null)
+  })
 
   it('calls get_floods_in_bbox RPC and returns 200', async () => {
     getSb().rpc.mockResolvedValue({ data: [], error: null })

@@ -31,6 +31,12 @@ Copy `.env.example` to `.env` and fill what you need.
 Minimum for map:
 - `VITE_MAPBOX_TOKEN`
 
+Recommended for realistic route geometry in `/api/route-check`:
+- `MAPBOX_TOKEN`
+
+Recommended for real address search in route inputs and the map search dock:
+- `MAPBOX_TOKEN`
+
 ## Mock data
 
 - `mocks/presets/heavy_rain_hcmc.json`: Simulate Rain preset

@@ -1,4 +1,22 @@
-import type { LatLng } from '../../shared/types.js'
+import type { AddressSuggestion, LatLng } from '../../shared/types.js'
+
+type MapboxFeature = {
+  id: string
+  place_name?: string
+  text?: string
+  center?: [number, number]
+}
+
+type MapboxResponse = {
+  features?: MapboxFeature[]
+}
+
+type NominatimItem = {
+  place_id: number | string
+  display_name?: string
+  lat?: string
+  lon?: string
+}
 
 // ── Hardcoded fallback table (used when Mapbox call fails or key missing) ─
 const KNOWN: Array<{ key: string; lat: number; lng: number }> = [
@@ -31,26 +49,132 @@ function fallbackGeocode(input: string): LatLng | null {
   return null
 }
 
+function getMapboxToken() {
+  return process.env.MAPBOX_TOKEN || process.env.VITE_MAPBOX_TOKEN
+}
+
+async function fetchMapboxFeatures(input: string, params: URLSearchParams): Promise<MapboxFeature[]> {
+  const token = getMapboxToken()
+  if (!token) return []
+
+  const encoded = encodeURIComponent(input.trim())
+  params.set('access_token', token)
+
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?${params.toString()}`
+  const res = await fetch(url)
+  if (!res.ok) return []
+
+  const json = (await res.json()) as MapboxResponse
+  return json.features ?? []
+}
+
+async function fetchNominatimSuggestions(input: string, limit: number): Promise<AddressSuggestion[]> {
+  const query = input.trim()
+  if (query.length < 3) return []
+
+  const params = new URLSearchParams({
+    q: `${query}, Ho Chi Minh City, Vietnam`,
+    format: 'jsonv2',
+    addressdetails: '1',
+    dedupe: '1',
+    limit: String(limit),
+  })
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      headers: {
+        'Accept-Language': 'vi,en;q=0.8',
+        'User-Agent': 'FloodSense/1.0 (local development geocoding)',
+      },
+    })
+    if (!response.ok) return []
+
+    const json = (await response.json()) as NominatimItem[]
+    return json
+      .map((item) => {
+        const lat = Number(item.lat)
+        const lng = Number(item.lon)
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+        return {
+          id: String(item.place_id),
+          label: item.display_name ?? query,
+          coordinates: { lat, lng },
+        }
+      })
+      .filter((item): item is AddressSuggestion => item !== null)
+  } catch {
+    return []
+  }
+}
+
 // ── Mapbox Geocoding API ───────────────────────────────────────────────────
 // Uses MAPBOX_TOKEN env var (server-side); falls back to hardcoded table.
 export async function geocode(input: string): Promise<LatLng | null> {
-  const token = process.env.MAPBOX_TOKEN || process.env.VITE_MAPBOX_TOKEN
-  if (!token) return fallbackGeocode(input)
-
-  const encoded = encodeURIComponent(input.trim())
-  const url =
-    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json` +
-    `?country=VN&proximity=106.7009,10.7769&limit=1&access_token=${token}`
+  const token = getMapboxToken()
+  if (!token) {
+    const publicSuggestions = await fetchNominatimSuggestions(input, 1)
+    return publicSuggestions[0]?.coordinates ?? fallbackGeocode(input)
+  }
 
   try {
-    const res = await fetch(url)
-    if (!res.ok) return fallbackGeocode(input)
-    const json = (await res.json()) as { features?: Array<{ center: [number, number] }> }
-    const center = json.features?.[0]?.center
-    if (!center) return fallbackGeocode(input)
+    const features = await fetchMapboxFeatures(
+      input,
+      new URLSearchParams({
+        country: 'VN',
+        proximity: '106.7009,10.7769',
+        limit: '1',
+        language: 'vi',
+      }),
+    )
+    const center = features[0]?.center
+    if (!center) {
+      const publicSuggestions = await fetchNominatimSuggestions(input, 1)
+      return publicSuggestions[0]?.coordinates ?? fallbackGeocode(input)
+    }
     return { lat: center[1], lng: center[0] }
   } catch {
-    return fallbackGeocode(input)
+    const publicSuggestions = await fetchNominatimSuggestions(input, 1)
+    return publicSuggestions[0]?.coordinates ?? fallbackGeocode(input)
+  }
+}
+
+export async function searchAddressSuggestions(input: string): Promise<AddressSuggestion[]> {
+  const query = input.trim()
+  if (query.length < 3) return []
+  if (!getMapboxToken()) {
+    return fetchNominatimSuggestions(query, 6)
+  }
+
+  try {
+    const features = await fetchMapboxFeatures(
+      query,
+      new URLSearchParams({
+        autocomplete: 'true',
+        country: 'VN',
+        bbox: '106.3,10.3,107.1,11.2',
+        limit: '6',
+        language: 'vi',
+        types: 'address,poi,place,locality,neighborhood',
+        proximity: '106.7009,10.7769',
+      }),
+    )
+
+    if (features.length === 0) {
+      return fetchNominatimSuggestions(query, 6)
+    }
+
+    return features
+      .filter((feature) => Array.isArray(feature.center) && feature.center.length === 2)
+      .map((feature) => ({
+        id: feature.id,
+        label: feature.place_name ?? feature.text ?? query,
+        coordinates: {
+          lat: feature.center![1],
+          lng: feature.center![0],
+        },
+      }))
+  } catch {
+    return fetchNominatimSuggestions(query, 6)
   }
 }
 

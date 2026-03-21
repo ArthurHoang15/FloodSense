@@ -62,6 +62,11 @@ type CrowdsourceInsight = {
   primaryMetric: IntelligenceMetric
   secondaryMetric: IntelligenceMetric
   districtLabel: string
+  overviewItems: Array<{
+    label: string
+    value: string
+    emphasis: 'primary' | 'secondary' | 'muted'
+  }>
 }
 
 function toHotspots(floods: FloodEvent[]): Hotspot[] {
@@ -179,9 +184,13 @@ function buildWeatherCopy(hourly: WeatherHourly[], floods: FloodEvent[], weather
     : null
 
   if (weatherAlert) {
+    const focusedArea = topDistricts.length > 0 ? topDistricts.join(' and ') : 'HCMC-wide monitoring'
     return {
-      title: weatherAlert.probability >= 70 ? 'Heavy Precipitation Expected' : 'Rain Watch Active',
-      description: weatherAlert.message,
+      title: weatherAlert.probability >= 70 ? `Heavy Precipitation Near ${focusedArea}` : `Rain Watch Near ${focusedArea}`,
+      description:
+        topDistricts.length > 0
+          ? `${weatherAlert.message} Priority monitoring is currently centered on ${focusedArea}.`
+          : weatherAlert.message,
     }
   }
 
@@ -221,12 +230,20 @@ function countSourcesByType(floods: FloodEvent[]) {
   return counts
 }
 
-function buildCrowdsourceInsight(floods: FloodEvent[]): CrowdsourceInsight {
+function buildCrowdsourceInsight(
+  floods: FloodEvent[],
+  routes: SavedRoute[],
+  impactedRouteIds: string[],
+  weatherAlert: WeatherAlert | null,
+): CrowdsourceInsight {
   const sourceCounts = countSourcesByType(floods)
   const fieldSignals = (sourceCounts.get('user_report') ?? 0) + (sourceCounts.get('social') ?? 0)
   const verifiedEvents = floods.filter((flood) => flood.confidence === 'high' || flood.sources.length > 0).length
   const strongestDistrict = getTopDistricts(floods, 1)[0] ?? 'Citywide monitoring'
   const telemetrySignals = (sourceCounts.get('vetc_mock') ?? 0) + (sourceCounts.get('government') ?? 0) + (sourceCounts.get('news') ?? 0)
+  const routeExposure = routes.length === 0 ? 'No saved routes' : `${impactedRouteIds.length}/${routes.length} routes`
+  const signalCoverage = `${fieldSignals + telemetrySignals} live sources`
+  const watchState = weatherAlert ? `${weatherAlert.probability}% rain watch` : 'No active watch'
 
   if (floods.length === 0) {
     return {
@@ -235,6 +252,11 @@ function buildCrowdsourceInsight(floods: FloodEvent[]): CrowdsourceInsight {
       primaryMetric: { label: 'Verified events', value: '0' },
       secondaryMetric: { label: 'Source signals', value: '0' },
       districtLabel: 'Citywide monitoring',
+      overviewItems: [
+        { label: 'Focus area', value: 'Standby', emphasis: 'muted' },
+        { label: 'Route exposure', value: routeExposure, emphasis: 'muted' },
+        { label: 'Weather watch', value: watchState, emphasis: 'secondary' },
+      ],
     }
   }
 
@@ -247,6 +269,11 @@ function buildCrowdsourceInsight(floods: FloodEvent[]): CrowdsourceInsight {
     primaryMetric: { label: 'Verified events', value: String(verifiedEvents) },
     secondaryMetric: { label: 'Source signals', value: String(fieldSignals + telemetrySignals) },
     districtLabel: `${strongestDistrict} focus`,
+    overviewItems: [
+      { label: 'Focus area', value: strongestDistrict, emphasis: 'primary' },
+      { label: 'Route exposure', value: routeExposure, emphasis: impactedRouteIds.length > 0 ? 'secondary' : 'muted' },
+      { label: 'Signal coverage', value: signalCoverage, emphasis: 'muted' },
+    ],
   }
 }
 
@@ -296,7 +323,10 @@ export function useIntelligenceController() {
   const historyBars = useMemo(() => toHistoryBars(floods), [floods])
   const weatherMetrics = useMemo(() => buildWeatherMetrics(weatherHourly), [weatherHourly])
   const weatherCopy = useMemo(() => buildWeatherCopy(weatherHourly, floods, weatherAlert), [floods, weatherAlert, weatherHourly])
-  const crowdsourceInsight = useMemo(() => buildCrowdsourceInsight(floods), [floods])
+  const crowdsourceInsight = useMemo(
+    () => buildCrowdsourceInsight(floods, routes, impactedRouteIds, weatherAlert),
+    [floods, impactedRouteIds, routes, weatherAlert],
+  )
   const historySummary = useMemo(() => buildHistorySummary(floods), [floods])
 
   return {
