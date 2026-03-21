@@ -49,21 +49,21 @@ export default function createWeatherRoutes(): express.Router {
 
       // Upsert into weather_forecasts (fire-and-forget)
       if (hourly.length > 0) {
-        void supabase
-          .from('weather_forecasts')
-          .upsert(
-            hourly.map((h) => ({
-              location: 'HCMC',
-              forecast_time: new Date(h.time + 'Z').toISOString(),
-              precipitation_probability: h.precipitation_probability,
-              rain_mm: h.rain_mm,
-              source: 'open_meteo',
-              fetched_at: now.toISOString(),
-            })),
-            { onConflict: 'location,forecast_time' },
-          )
-          .then()
-          .catch((e) => console.warn('[weather] upsert failed:', e))
+        void Promise.resolve(
+          supabase
+            .from('weather_forecasts')
+            .upsert(
+              hourly.map((h) => ({
+                location: 'HCMC',
+                forecast_time: new Date(h.time + 'Z').toISOString(),
+                precipitation_probability: h.precipitation_probability,
+                rain_mm: h.rain_mm,
+                source: 'open_meteo',
+                fetched_at: now.toISOString(),
+              })),
+              { onConflict: 'location,forecast_time' },
+            ),
+        ).catch((e) => console.warn('[weather] upsert failed:', e))
       }
 
       const maxProb = hourly.reduce((m, h) => Math.max(m, h.precipitation_probability), 0)
