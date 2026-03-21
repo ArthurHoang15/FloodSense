@@ -41,7 +41,7 @@ export default function RoutePlanner({ onRouteReady }: Props) {
     if (!res) return
     onRouteReady(res.route.coords)
     if (voiceEnabled && res.alertText) {
-      speak(res.alertText, voiceVariant)
+      void speak(res.alertText, voiceVariant)
     }
   }
 
@@ -58,7 +58,7 @@ export default function RoutePlanner({ onRouteReady }: Props) {
       notify_enabled: true,
       created_at: now,
     }
-    addRoute(r)
+    void addRoute(r)
   }
 
   return (

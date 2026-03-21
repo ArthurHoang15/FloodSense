@@ -28,6 +28,7 @@ export default function HomeDashboard({ controller }: Props) {
     impactedRouteIds,
     routes,
     voiceEnabled,
+    weatherAlert,
   } = controller
 
   return (
@@ -38,6 +39,12 @@ export default function HomeDashboard({ controller }: Props) {
         <NavigationRail telemetry={telemetry} onSimulate={() => startSimulateRain()} onRefresh={() => fetchFloods()} simulating={simulating} />
 
         <main className="min-w-0 flex-1 px-3 pb-24 pt-24 md:px-6 xl:pb-10 xl:pr-[448px]">
+          {weatherAlert ? (
+            <div className="mb-4 rounded-3xl border border-primary-container/20 bg-primary-container/12 px-4 py-4 text-sm text-primary shadow-ambient">
+              {weatherAlert.message}
+            </div>
+          ) : null}
+
           <section className="relative">
             <CriticalAlertBanner flood={headlineFlood} />
             <MapStage floods={floods} routeCoords={routeCoords} headlineFlood={headlineFlood} heavyCount={stats.heavyCount} />

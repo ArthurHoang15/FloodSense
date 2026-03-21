@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"import.*supabase\\\\|createClient\\\\|SupabaseClient\" . --include=*.ts --include=*.tsx --exclude-dir=node_modules)",
+      "Bash(grep -r \"VITE_\\\\|import.meta.env\" . --include=*.ts --include=*.tsx --exclude-dir=node_modules)"
+    ]
+  }
+}
