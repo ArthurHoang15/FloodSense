@@ -6,6 +6,7 @@ import { bboxFromCoords, haversineMeters, interpolateLine, computeBearing } from
 import { getDrivingRoute, getRouteAlternatives } from '../_lib/directions.js'
 import { geocode, mockGeocode } from '../_lib/geocode.js'
 import supabase, { toFloodEvent } from '../_lib/supabase.js'
+import { fetchEnrichedWeather } from '../_lib/weatherEnrich.js'
 
 const RADIUS_METERS = 200
 
@@ -158,7 +159,10 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
         floods = getFloods(store)
       }
 
-      const affected = countFloodIntersections(coords, floods)
+      // ── Separate forecast floods from confirmed floods ─────────────────
+      const confirmedFloods = floods.filter((f) => !f.is_forecast)
+      const forecastFloods = floods.filter((f) => f.is_forecast)
+      const affected = countFloodIntersections(coords, confirmedFloods)
 
       const warnings: string[] = []
       if (affected.length > 0) {
@@ -189,6 +193,31 @@ export default function createRouteCheckRoutes(store: FloodStore): express.Route
             floodZones: alt.floodZones,
           }
           warnings.push(`Safe alternative route available — avoids ${affected.length - alt.floodZones.length} flood zone(s).`)
+        }
+      }
+
+      // ── Forecast warnings ──────────────────────────────────────────────
+      const forecastAffected = countFloodIntersections(coords, forecastFloods)
+      if (forecastAffected.length > 0) {
+        let precipitation_sum_6h: number | null = null
+        try {
+          const enriched = await fetchEnrichedWeather()
+          if (enriched) {
+            precipitation_sum_6h = enriched.hourly.reduce((sum, h) => sum + h.rain_mm, 0)
+          }
+        } catch {
+          // non-fatal
+        }
+
+        for (const f of forecastAffected) {
+          const hoursAway = f.forecast_valid_until
+            ? Math.max(1, Math.round((new Date(f.forecast_valid_until).getTime() - Date.now()) / 3_600_000))
+            : 1
+          const warning =
+            precipitation_sum_6h != null
+              ? `Khu vực ${f.district} có nguy cơ ngập trong ${hoursAway} giờ tới — dự báo mưa ${Math.round(precipitation_sum_6h)}mm`
+              : `Khu vực ${f.district} có nguy cơ ngập trong ${hoursAway} giờ tới theo dự báo thời tiết`
+          warnings.push(warning)
         }
       }
 
